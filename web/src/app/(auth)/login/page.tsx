@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useState, useEffect } from "react";
 
 type Role = "owner" | "agent";
 
@@ -20,7 +19,7 @@ export default function LoginPage() {
   const [role, setRole] = useState<Role>("owner");
 
   const { headline, sub } = messaging[role];
-  const dashboardHref = role === "owner" ? "/owner" : "/agent";
+  const googleAuthUrl = `/api/auth/google?role=${role}`;
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center">
@@ -56,48 +55,84 @@ export default function LoginPage() {
         </div>
 
         {/* Messaging */}
-        <p className="text-sm font-medium text-gray-900 text-center mb-1">{headline}</p>
+        <p className="text-sm font-medium text-gray-900 text-center mb-1">
+          {headline}
+        </p>
         <p className="text-xs text-gray-500 text-center mb-6">{sub}</p>
 
         {/* Google OAuth button */}
-        <button className="w-full border border-gray-300 rounded-lg py-2.5 flex items-center justify-center gap-2.5 mb-4">
+        <a
+          href={googleAuthUrl}
+          className="w-full border border-gray-300 rounded-lg py-2.5 flex items-center justify-center gap-2.5 mb-4 hover:bg-gray-50 transition-colors"
+        >
           <span className="w-[18px] h-[18px] bg-blue-500 rounded-full flex items-center justify-center">
             <span className="text-[10px] font-bold text-white">G</span>
           </span>
-          <span className="text-[13px] font-medium text-gray-700">Continue with Google</span>
-        </button>
+          <span className="text-[13px] font-medium text-gray-700">
+            Continue with Google
+          </span>
+        </a>
 
         {/* Divider */}
         <p className="text-center text-[11px] text-gray-400 mb-4">or</p>
 
-        {/* Email input */}
+        {/* Email — disabled for MVP */}
         <input
           type="email"
           placeholder="Email address"
-          className="w-full border border-gray-300 rounded-md py-2 px-3 text-xs text-gray-900 placeholder:text-gray-400 mb-3"
+          disabled
+          className="w-full border border-gray-300 rounded-md py-2 px-3 text-xs text-gray-900 placeholder:text-gray-400 mb-3 opacity-50 cursor-not-allowed"
         />
 
-        {/* Password input */}
+        {/* Password — disabled for MVP */}
         <input
           type="password"
           placeholder="Password"
-          className="w-full border border-gray-300 rounded-md py-2 px-3 text-xs text-gray-900 placeholder:text-gray-400 mb-4"
+          disabled
+          className="w-full border border-gray-300 rounded-md py-2 px-3 text-xs text-gray-900 placeholder:text-gray-400 mb-4 opacity-50 cursor-not-allowed"
         />
 
-        {/* Sign Up button */}
-        <Link
-          href={dashboardHref}
-          className="block w-full bg-brand text-white py-2.5 rounded-lg text-center text-[13px] font-medium mb-4"
+        {/* Sign Up — disabled for MVP */}
+        <button
+          disabled
+          className="block w-full bg-gray-300 text-white py-2.5 rounded-lg text-center text-[13px] font-medium mb-4 cursor-not-allowed"
         >
-          Sign Up
-        </Link>
+          Sign Up with Email
+        </button>
 
         {/* Sign in link */}
         <p className="text-center text-xs text-gray-500">
           Already have an account?{" "}
-          <span className="text-brand">Sign in</span>
+          <a href={googleAuthUrl} className="text-brand hover:underline">
+            Sign in with Google
+          </a>
         </p>
+
+        <ErrorMessage />
       </div>
     </div>
+  );
+}
+
+function ErrorMessage() {
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setError(params.get("error"));
+  }, []);
+
+  if (!error) return null;
+
+  const messages: Record<string, string> = {
+    auth_failed: "Google sign-in failed. Please try again.",
+    invalid_state: "Something went wrong. Please try again.",
+    server_error: "Server error. Please try again later.",
+  };
+
+  return (
+    <p className="text-center text-xs text-red-500 mt-4">
+      {messages[error] || "An error occurred. Please try again."}
+    </p>
   );
 }
