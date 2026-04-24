@@ -58,5 +58,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/owner/:path*", "/agent/:path*"],
+  matcher: ["/owner", "/owner/:path*", "/agent", "/agent/:path*"],
 };
