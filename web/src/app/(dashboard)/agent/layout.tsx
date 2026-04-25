@@ -1,4 +1,5 @@
 import { AgentSidebar } from "@/components/agent-sidebar";
+import { UserProvider } from "@/lib/user-context";
 
 export default function AgentLayout({
   children,
@@ -6,9 +7,11 @@ export default function AgentLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen">
-      <AgentSidebar />
-      <main className="flex-1 p-5 bg-white overflow-y-auto">{children}</main>
-    </div>
+    <UserProvider>
+      <div className="flex min-h-screen">
+        <AgentSidebar />
+        <main className="flex-1 p-5 bg-white overflow-y-auto">{children}</main>
+      </div>
+    </UserProvider>
   );
 }

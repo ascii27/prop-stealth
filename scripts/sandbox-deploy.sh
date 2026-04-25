@@ -32,7 +32,9 @@ npm run build -w web
 echo "==> Stopping existing servers..."
 pkill -f "tsx.*src/index.ts" 2>/dev/null || true
 pkill -f "next start" 2>/dev/null || true
-sleep 1
+fuser -k 8000/tcp 2>/dev/null || true
+fuser -k 4000/tcp 2>/dev/null || true
+sleep 2
 
 echo "==> Starting API server..."
 cd api
