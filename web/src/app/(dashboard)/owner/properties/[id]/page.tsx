@@ -1,21 +1,81 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { ownerProperties, ownerDocuments } from "@/lib/mock-data";
+import { useParams, useRouter } from "next/navigation";
 import { StatusBadge } from "@/components/status-badge";
 
-export default async function PropertyDetail({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const property = ownerProperties.find((p) => p.id === id);
+interface Property {
+  id: string;
+  address: string;
+  city: string;
+  state: string;
+  beds: number;
+  baths: number;
+  unit: string | null;
+  occupied: boolean;
+  tenant_name: string | null;
+}
 
-  if (!property) {
-    notFound();
+export default function PropertyDetail() {
+  const params = useParams();
+  const router = useRouter();
+  const id = params.id as string;
+
+  const [property, setProperty] = useState<Property | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/properties/${id}`, { credentials: "include" })
+      .then((res) => {
+        if (res.status === 404) {
+          setNotFound(true);
+          return null;
+        }
+        if (!res.ok) throw new Error("Failed to load");
+        return res.json();
+      })
+      .then((data) => {
+        if (data) setProperty(data.property);
+      })
+      .catch((err) => console.error(err))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  async function handleDelete() {
+    if (!confirm("Delete this property? This cannot be undone.")) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/properties/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (res.ok) {
+        router.push("/owner/properties");
+      }
+    } catch (err) {
+      console.error("Delete failed:", err);
+    } finally {
+      setDeleting(false);
+    }
   }
 
-  const docs = ownerDocuments.filter((d) => d.propertyId === id);
+  if (loading) {
+    return <p className="text-xs text-gray-400 p-5">Loading...</p>;
+  }
+
+  if (notFound || !property) {
+    return (
+      <div>
+        <Link href="/owner/properties" className="text-xs text-brand inline-block mb-4">
+          &larr; Back to properties
+        </Link>
+        <p className="text-sm text-gray-500">Property not found.</p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -35,54 +95,37 @@ export default async function PropertyDetail({
             {property.unit ? `, ${property.unit}` : ""}
           </h1>
           <p className="text-[11px] text-gray-500">
-            {property.beds}bd / {property.baths}ba &middot; {property.city}
+            {property.beds}bd / {property.baths}ba &middot; {property.city}, {property.state}
           </p>
         </div>
-        <StatusBadge variant={property.occupied ? "occupied" : "vacant"}>
-          {property.occupied ? "Occupied" : "Vacant"}
-        </StatusBadge>
+        <div className="flex items-center gap-2">
+          <StatusBadge variant={property.occupied ? "occupied" : "vacant"}>
+            {property.occupied ? "Occupied" : "Vacant"}
+          </StatusBadge>
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50"
+          >
+            {deleting ? "Deleting..." : "Delete"}
+          </button>
+        </div>
       </div>
 
       {/* Tenant card */}
-      {property.occupied && property.tenantName && (
+      {property.occupied && property.tenant_name && (
         <div className="border rounded-lg p-4 mb-6">
           <p className="text-sm font-medium text-gray-900">
-            {property.tenantName}
+            {property.tenant_name}
           </p>
-          <p className="text-[11px] text-gray-500 mt-0.5">
-            Lease: Jan 1, 2026 &ndash; Dec 31, 2026
-          </p>
+          <p className="text-[11px] text-gray-500 mt-0.5">Current tenant</p>
         </div>
       )}
 
-      {/* Documents section */}
+      {/* Documents section — placeholder until documents API is built */}
       <div>
         <h2 className="text-sm font-semibold text-gray-900 mb-3">Documents</h2>
-        {docs.length === 0 ? (
-          <p className="text-xs text-gray-400">No documents uploaded yet.</p>
-        ) : (
-          <div className="space-y-2">
-            {docs.map((doc) => (
-              <div
-                key={doc.id}
-                className="flex items-center justify-between border rounded-lg p-3"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-base">📄</span>
-                  <div>
-                    <p className="text-xs font-medium text-gray-900">
-                      {doc.name}
-                    </p>
-                    <p className="text-[11px] text-gray-500">
-                      {doc.type} &middot; {doc.uploadDate}
-                    </p>
-                  </div>
-                </div>
-                <span className="text-[11px] text-gray-500">{doc.size}</span>
-              </div>
-            ))}
-          </div>
-        )}
+        <p className="text-xs text-gray-400">No documents uploaded yet.</p>
       </div>
     </div>
   );
