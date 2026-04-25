@@ -38,7 +38,13 @@ router.get("/", requireAuth, async (req: Request, res: Response) => {
       }),
     );
 
-    res.json({ clients });
+    // Also fetch pending invitations
+    const invResult = await db.query(
+      "SELECT * FROM invitations WHERE agent_id = $1 AND status = 'pending' ORDER BY created_at DESC",
+      [userId],
+    );
+
+    res.json({ clients, pendingInvitations: invResult.rows });
   } catch (err) {
     console.error("List clients error:", err);
     res.status(500).json({ error: "Failed to list clients" });

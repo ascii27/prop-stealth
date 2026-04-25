@@ -11,15 +11,24 @@ interface SidebarClient {
   name: string;
 }
 
+interface PendingInvite {
+  id: string;
+  name: string;
+}
+
 export function AgentSidebar() {
   const pathname = usePathname();
   const { user } = useUser();
   const [clients, setClients] = useState<SidebarClient[]>([]);
+  const [pending, setPending] = useState<PendingInvite[]>([]);
 
   useEffect(() => {
     fetch("/api/clients", { credentials: "include" })
-      .then((res) => (res.ok ? res.json() : { clients: [] }))
-      .then((data) => setClients(data.clients))
+      .then((res) => (res.ok ? res.json() : { clients: [], pendingInvitations: [] }))
+      .then((data) => {
+        setClients(data.clients);
+        setPending(data.pendingInvitations || []);
+      })
       .catch(() => {});
   }, []);
 
@@ -57,7 +66,7 @@ export function AgentSidebar() {
         <div className="mt-2">
           <span className="px-2 text-sm text-gray-500">Clients</span>
           <div className="mt-1 flex flex-col gap-0.5 pl-2">
-            {clients.length === 0 && (
+            {clients.length === 0 && pending.length === 0 && (
               <span className="px-2 py-1 text-[11px] text-gray-300">None yet</span>
             )}
             {clients.map((client) => {
@@ -75,6 +84,14 @@ export function AgentSidebar() {
                 </Link>
               );
             })}
+            {pending.map((inv) => (
+              <span
+                key={inv.id}
+                className="px-2 py-1 text-[11px] text-gray-300 italic"
+              >
+                {inv.name} (pending)
+              </span>
+            ))}
           </div>
         </div>
 

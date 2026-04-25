@@ -26,14 +26,26 @@ interface ClientData {
   vacancyCount: number;
 }
 
+interface PendingInvitation {
+  id: string;
+  name: string;
+  email: string;
+  status: string;
+  created_at: string;
+}
+
 export default function AgentHome() {
   const [clients, setClients] = useState<ClientData[]>([]);
+  const [pending, setPending] = useState<PendingInvitation[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch("/api/clients", { credentials: "include" })
-      .then((res) => (res.ok ? res.json() : { clients: [] }))
-      .then((data) => setClients(data.clients))
+      .then((res) => (res.ok ? res.json() : { clients: [], pendingInvitations: [] }))
+      .then((data) => {
+        setClients(data.clients);
+        setPending(data.pendingInvitations || []);
+      })
       .catch(() => setClients([]))
       .finally(() => setLoading(false));
   }, []);
@@ -175,6 +187,31 @@ export default function AgentHome() {
               </div>
             </div>
           ))}
+        </>
+      )}
+
+      {/* Pending Invitations */}
+      {pending.length > 0 && (
+        <>
+          <h2 className="text-[13px] font-semibold text-gray-900 mb-2.5 mt-6">
+            Pending Invitations
+          </h2>
+          <div className="space-y-2">
+            {pending.map((inv) => (
+              <div
+                key={inv.id}
+                className="border border-dashed border-gray-200 rounded-lg p-3 flex justify-between items-center"
+              >
+                <div>
+                  <p className="text-xs font-medium text-gray-900">{inv.name}</p>
+                  <p className="text-[10px] text-gray-500">{inv.email}</p>
+                </div>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-amber-50 text-amber-600">
+                  Pending
+                </span>
+              </div>
+            ))}
+          </div>
         </>
       )}
     </div>
