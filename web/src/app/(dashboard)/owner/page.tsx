@@ -1,15 +1,30 @@
+"use client";
+
 import Link from "next/link";
 import { attentionItems, timelineGroups } from "@/lib/mock-data";
 import { AttentionCard } from "@/components/attention-card";
 import { TimelineEntry } from "@/components/timeline-entry";
+import { useUser } from "@/lib/user-context";
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
 
 export default function OwnerHome() {
+  const { user } = useUser();
+  const firstName = user?.name?.split(" ")[0] || "there";
+
   return (
     <div>
       {/* Header */}
       <div className="flex justify-between items-center mb-5">
         <div>
-          <h1 className="text-lg font-semibold text-gray-900">Good morning, Dana</h1>
+          <h1 className="text-lg font-semibold text-gray-900">
+            {getGreeting()}, {firstName}
+          </h1>
           <p className="text-xs text-gray-500">3 items need your attention</p>
         </div>
         <Link
