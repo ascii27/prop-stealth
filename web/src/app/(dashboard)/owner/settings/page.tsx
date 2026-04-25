@@ -1,4 +1,10 @@
+"use client";
+
+import { useUser } from "@/lib/user-context";
+
 export default function SettingsPage() {
+  const { user, loading } = useUser();
+
   return (
     <div>
       <h1 className="text-lg font-semibold text-gray-900 mb-5">Settings</h1>
@@ -14,11 +20,10 @@ export default function SettingsPage() {
             property emails.
           </p>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] px-2.5 py-1 rounded bg-brand-light border border-brand-border flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
-              <span className="text-brand font-medium">Connected</span>
+            <span className="text-[11px] px-2.5 py-1 rounded bg-gray-100 border border-gray-200 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-gray-400 inline-block" />
+              <span className="text-gray-500 font-medium">Not connected</span>
             </span>
-            <span className="text-xs text-gray-500">dana.martinez@gmail.com</span>
           </div>
         </div>
 
@@ -78,25 +83,29 @@ export default function SettingsPage() {
         {/* Account */}
         <div className="border rounded-lg p-5">
           <h2 className="text-sm font-semibold text-gray-900 mb-3">Account</h2>
-          <div className="flex flex-col gap-3">
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Name</label>
-              <input
-                type="text"
-                defaultValue="Dana Martinez"
-                className="w-[240px] border border-gray-200 rounded-md px-3 py-1.5 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-brand"
-              />
+          {loading ? (
+            <div className="text-xs text-gray-400">Loading...</div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Name</label>
+                <input
+                  type="text"
+                  defaultValue={user?.name || ""}
+                  className="w-[240px] border border-gray-200 rounded-md px-3 py-1.5 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-brand"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Email</label>
+                <input
+                  type="email"
+                  defaultValue={user?.email || ""}
+                  disabled
+                  className="w-[240px] border border-gray-200 rounded-md px-3 py-1.5 text-xs text-gray-400 bg-gray-50 cursor-not-allowed"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Email</label>
-              <input
-                type="email"
-                defaultValue="dana.martinez@gmail.com"
-                disabled
-                className="w-[240px] border border-gray-200 rounded-md px-3 py-1.5 text-xs text-gray-400 bg-gray-50 cursor-not-allowed"
-              />
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
