@@ -1,42 +1,117 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { tenantEvaluations } from "@/lib/mock-data";
+import { useParams } from "next/navigation";
 import { ScoreBadge } from "@/components/score-badge";
 
-export default async function TenantEvalResults({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const evaluation = tenantEvaluations.find((e) => e.id === id);
+interface ScoreBreakdown {
+  category: string;
+  score: number;
+  detail: string;
+}
 
-  if (!evaluation) {
-    notFound();
+interface EvidenceItem {
+  name: string;
+  description: string;
+  type: "file" | "link";
+}
+
+interface Evaluation {
+  id: string;
+  applicant_name: string;
+  property_address: string;
+  overall_score: number;
+  risk_level: "low" | "medium" | "high";
+  recommendation: string;
+  summary: string;
+  breakdown: ScoreBreakdown[];
+  evidence: EvidenceItem[];
+  status: string;
+  created_at: string;
+}
+
+const riskStyles = {
+  low: {
+    container: "bg-brand-light border-brand-border text-emerald-800",
+    dot: "bg-brand",
+  },
+  medium: {
+    container: "bg-yellow-50 border-yellow-200 text-yellow-800",
+    dot: "bg-yellow-500",
+  },
+  high: {
+    container: "bg-red-50 border-red-200 text-red-800",
+    dot: "bg-red-500",
+  },
+};
+
+export default function TenantEvalResults() {
+  const params = useParams();
+  const id = params.id as string;
+
+  const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [updating, setUpdating] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/evaluations/${id}`, { credentials: "include" })
+      .then((res) => {
+        if (res.status === 404) {
+          setNotFound(true);
+          return null;
+        }
+        if (!res.ok) throw new Error("Failed to load");
+        return res.json();
+      })
+      .then((data) => {
+        if (data) setEvaluation(data.evaluation);
+      })
+      .catch((err) => console.error(err))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  async function updateStatus(status: "approved" | "declined") {
+    setUpdating(true);
+    try {
+      const res = await fetch(`/api/evaluations/${id}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setEvaluation(data.evaluation);
+      }
+    } catch (err) {
+      console.error("Status update failed:", err);
+    } finally {
+      setUpdating(false);
+    }
   }
 
-  // Recommendation badge styles by risk level
-  const riskStyles = {
-    low: {
-      container: "bg-brand-light border-brand-border text-emerald-800",
-      dot: "bg-brand",
-    },
-    medium: {
-      container: "bg-yellow-50 border-yellow-200 text-yellow-800",
-      dot: "bg-yellow-500",
-    },
-    high: {
-      container: "bg-red-50 border-red-200 text-red-800",
-      dot: "bg-red-500",
-    },
-  };
+  if (loading) {
+    return <p className="text-xs text-gray-400 p-5">Loading...</p>;
+  }
 
-  const risk = riskStyles[evaluation.riskLevel];
+  if (notFound || !evaluation) {
+    return (
+      <div>
+        <Link href="/owner/tenant-eval" className="text-xs text-brand inline-block mb-4">
+          &larr; Back to evaluations
+        </Link>
+        <p className="text-sm text-gray-500">Evaluation not found.</p>
+      </div>
+    );
+  }
 
+  const risk = riskStyles[evaluation.risk_level];
   const recommendationLabel =
-    evaluation.riskLevel === "low"
+    evaluation.risk_level === "low"
       ? "Low Risk — Recommended"
-      : evaluation.riskLevel === "medium"
+      : evaluation.risk_level === "medium"
       ? "Medium Risk — Review Recommended"
       : "High Risk — Not Recommended";
 
@@ -54,14 +129,14 @@ export default async function TenantEvalResults({
       <div className="flex justify-between items-start mb-5">
         <div>
           <h1 className="text-lg font-semibold text-gray-900">
-            {evaluation.applicantName}
+            {evaluation.applicant_name}
           </h1>
           <p className="text-xs text-gray-500">
-            Applying for {evaluation.propertyAddress} &middot; Evaluated{" "}
-            {evaluation.evaluationDate}
+            Applying for {evaluation.property_address} &middot; Evaluated{" "}
+            {new Date(evaluation.created_at).toLocaleDateString()}
           </p>
         </div>
-        <ScoreBadge score={evaluation.overallScore} size="large" />
+        <ScoreBadge score={evaluation.overall_score} size="large" />
       </div>
 
       {/* Recommendation Badge */}
@@ -72,6 +147,16 @@ export default async function TenantEvalResults({
           <span className={`w-2.5 h-2.5 rounded-full ${risk.dot}`} />
           <span className="text-xs font-medium">{recommendationLabel}</span>
         </span>
+        {evaluation.status === "approved" && (
+          <span className="ml-2 text-[10px] px-2 py-0.5 rounded bg-brand-light text-brand font-medium">
+            Approved
+          </span>
+        )}
+        {evaluation.status === "declined" && (
+          <span className="ml-2 text-[10px] px-2 py-0.5 rounded bg-red-50 text-red-600 font-medium">
+            Declined
+          </span>
+        )}
         <p className="text-[10px] text-gray-400 mt-1.5">
           This assessment is AI-generated and advisory. You make the final decision.
         </p>
@@ -119,7 +204,7 @@ export default async function TenantEvalResults({
         {evaluation.evidence.map((item) => (
           <div key={item.name} className="flex items-center gap-2 px-3 py-2">
             <span className="text-[11px] text-gray-500">
-              {item.type === "file" ? "📄" : "🔗"}
+              {item.type === "file" ? "\u{1F4C4}" : "\u{1F517}"}
             </span>
             <span className="text-xs text-blue-600 cursor-pointer">{item.name}</span>
             <span className="text-[10px] text-gray-500">— {item.description}</span>
@@ -128,17 +213,24 @@ export default async function TenantEvalResults({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-2 pt-3 border-t border-gray-200">
-        <button className="bg-brand text-white px-5 py-2 rounded-md text-[13px] font-medium">
-          Approve Tenant
-        </button>
-        <button className="bg-red-50 text-red-600 px-5 py-2 rounded-md text-[13px] font-medium">
-          Decline
-        </button>
-        <button className="bg-gray-100 text-gray-700 px-5 py-2 rounded-md text-[13px]">
-          Ask Agent for Help
-        </button>
-      </div>
+      {evaluation.status === "complete" && (
+        <div className="flex gap-2 pt-3 border-t border-gray-200">
+          <button
+            onClick={() => updateStatus("approved")}
+            disabled={updating}
+            className="bg-brand text-white px-5 py-2 rounded-md text-[13px] font-medium disabled:opacity-50"
+          >
+            Approve Tenant
+          </button>
+          <button
+            onClick={() => updateStatus("declined")}
+            disabled={updating}
+            className="bg-red-50 text-red-600 px-5 py-2 rounded-md text-[13px] font-medium disabled:opacity-50"
+          >
+            Decline
+          </button>
+        </div>
+      )}
     </div>
   );
 }

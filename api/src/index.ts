@@ -6,6 +6,7 @@ import passport from "passport";
 import { config } from "./config.js";
 import authRoutes from "./routes/auth.js";
 import propertyRoutes from "./routes/properties.js";
+import evaluationRoutes from "./routes/evaluations.js";
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.use(passport.initialize());
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/properties", propertyRoutes);
+app.use("/api/evaluations", evaluationRoutes);
 
 // Health check
 app.get("/api/health", (_req, res) => {
