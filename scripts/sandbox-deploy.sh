@@ -42,7 +42,7 @@ cd ..
 
 echo "==> Starting web server..."
 cd web
-nohup npx next start -p 3000 -H 0.0.0.0 > /tmp/propstealth-web.log 2>&1 &
+sudo nohup npx next start -p 80 -H 0.0.0.0 > /tmp/propstealth-web.log 2>&1 &
 echo "Web PID: $!"
 cd ..
 
@@ -51,8 +51,8 @@ echo ""
 echo "==> Verifying..."
 curl -s http://localhost:4000/api/health
 echo ""
-curl -s -o /dev/null -w "Web: HTTP %{http_code}" http://localhost:3000
+curl -s -o /dev/null -w "Web: HTTP %{http_code}" http://localhost:80
 echo ""
 echo ""
-echo "==> Deployed! App running at https://$HOSTNAME:3000"
+echo "==> Deployed! App running at https://$HOSTNAME"
 REMOTE_SCRIPT

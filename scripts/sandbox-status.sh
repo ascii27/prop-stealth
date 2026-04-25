@@ -21,7 +21,7 @@ echo ""
 echo "Web server:"
 if pgrep -f "next start" > /dev/null; then
   echo "  Running (PID $(pgrep -f 'next start'))"
-  curl -s -o /dev/null -w "  HTTP %{http_code}\n" http://localhost:3000
+  curl -s -o /dev/null -w "  HTTP %{http_code}\n" http://localhost:80
 else
   echo "  Not running"
 fi
