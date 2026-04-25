@@ -1,7 +1,7 @@
 # PropStealth — Progress & Next Steps
 
-**Date:** 2026-04-25
-**Branch:** `main` (merged), `feat/backend-auth` (PR #2 open)
+**Updated:** 2026-04-25
+**Branches:** `main` (merged through PR #1), `feat/backend-auth` (PR #2 open), `feat/exe-dev-testing` (active)
 
 ---
 
@@ -26,25 +26,34 @@
 - Login page wired to real Google OAuth flow (email/password disabled for MVP)
 - API routes: `GET /api/auth/google`, `GET /api/auth/google/callback`, `POST /api/auth/logout`, `GET /api/auth/me`, `GET /api/health`
 
+### Testing Sandbox (branch `feat/exe-dev-testing`)
+- exe.dev sandbox provisioned at `wyvern-zebra.exe.xyz`
+- Node.js 22, PostgreSQL 16 installed on sandbox
+- Database created and migrations run
+- Google OAuth credentials configured (callback: `https://wyvern-zebra.exe.xyz/api/auth/google/callback`)
+- Full sign-in flow verified and working
+- Deploy/status/stop scripts in `scripts/`
+- Web runs on port 8000, API on port 4000
+- Accessible at `https://wyvern-zebra.exe.xyz`
+
 ## Next Steps
 
-### Immediate (before auth is fully usable)
-1. **Set up Google Cloud Console OAuth credentials** — create OAuth 2.0 client ID, configure authorized redirect URI (`http://localhost:3000/api/auth/google/callback`), add credentials to `api/.env`
-2. **Merge PR #2** — backend auth branch
-3. **End-to-end auth testing** — verify full sign-up/sign-in flow with real Google account
+### Immediate
+1. **Merge PR #2** — backend auth branch to main
+2. **Merge exe.dev testing branch** — sandbox scripts to main
 
 ### Short-term (MVP functionality)
+3. **User profile in dashboard** — show logged-in user's name/avatar in sidebar, replace hardcoded "Dana" / "Priya" with real user data from `/api/auth/me`
 4. **Property CRUD API** — REST endpoints for creating, reading, updating, deleting properties. Wire owner Properties/Documents pages to real data instead of mock data.
-5. **User profile in dashboard** — show logged-in user's name/avatar in sidebar, replace hardcoded "Dana" / "Priya" with real user data
-6. **Tenant Evaluation API** — file upload endpoint, store evaluations in PostgreSQL, wire Tenant Eval pages to real data
-7. **Agent-client relationship** — invite flow, client association, agent can see client properties
+5. **Tenant Evaluation API** — file upload endpoint, store evaluations in PostgreSQL, wire Tenant Eval pages to real data
+6. **Agent-client relationship** — invite flow, client association, agent can see client properties
 
 ### Medium-term (AI Agents)
-8. **Agent framework** — common agent interface, tool registry, structured traces
-9. **Inbox Agent** — Gmail API OAuth integration, email classification, key points extraction, auto-respond drafts
-10. **Tenant Evaluation Agent** — document analysis (OCR/parsing), credit check partner integration, risk scoring with AI narrative
+7. **Agent framework** — common agent interface, tool registry, structured traces
+8. **Inbox Agent** — Gmail API OAuth integration, email classification, key points extraction, auto-respond drafts
+9. **Tenant Evaluation Agent** — document analysis (OCR/parsing), credit check partner integration, risk scoring with AI narrative
 
 ### Later
-11. **Email/password auth** — registration, login, password reset, email verification
-12. **Deployment** — Vercel (web) + cloud hosting (api), production PostgreSQL
-13. **Phase 2 agents** — Maintenance Coordinator, Portfolio Analyst, Bills & Utilities
+10. **Email/password auth** — registration, login, password reset, email verification
+11. **Deployment** — Vercel (web) + cloud hosting (api), production PostgreSQL
+12. **Phase 2 agents** — Maintenance Coordinator, Portfolio Analyst, Bills & Utilities
