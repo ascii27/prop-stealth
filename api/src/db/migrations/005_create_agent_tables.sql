@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS inbox_emails (
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   property_id UUID REFERENCES properties(id) ON DELETE SET NULL,
   gmail_message_id VARCHAR(255) NOT NULL UNIQUE,
+  gmail_thread_id VARCHAR(255),
   sender VARCHAR(255) NOT NULL,
   subject VARCHAR(500),
   theme VARCHAR(20) NOT NULL CHECK (theme IN ('tenant', 'hoa', 'bill', 'maintenance', 'other')),

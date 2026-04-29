@@ -225,6 +225,10 @@ export async function exchangeGmailCode(code: string): Promise<{
   const client = createOAuth2Client();
   const { tokens } = await client.getToken(code);
 
+  if (!tokens.refresh_token) {
+    throw new Error("No refresh token returned. Re-authorize with prompt=consent.");
+  }
+
   client.setCredentials(tokens);
   const gmail = google.gmail({ version: "v1", auth: client });
   const profile = await gmail.users.getProfile({ userId: "me" });
@@ -232,7 +236,7 @@ export async function exchangeGmailCode(code: string): Promise<{
   return {
     tokens: {
       access_token: tokens.access_token!,
-      refresh_token: tokens.refresh_token!,
+      refresh_token: tokens.refresh_token,
       token_expires_at: new Date(tokens.expiry_date!),
     },
     email: profile.data.emailAddress!,

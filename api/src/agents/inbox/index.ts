@@ -88,13 +88,14 @@ async function inboxAgent(context: AgentContext): Promise<AgentResult> {
 
       await db.query(
         `INSERT INTO inbox_emails
-         (user_id, property_id, gmail_message_id, sender, subject, theme, key_points, full_content, show_auto_respond, violation_tag, email_date)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         (user_id, property_id, gmail_message_id, gmail_thread_id, sender, subject, theme, key_points, full_content, show_auto_respond, violation_tag, email_date)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
          ON CONFLICT (gmail_message_id) DO NOTHING`,
         [
           userId,
           propertyId,
           email.gmailMessageId,
+          email.threadId,
           email.sender,
           email.subject,
           classification.theme,

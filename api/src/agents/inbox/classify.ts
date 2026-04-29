@@ -37,18 +37,16 @@ const classifyTool: Anthropic.Messages.Tool = {
         description: "1-2 sentence summary of the most important information in the email.",
       },
       property_match: {
-        type: "string",
+        type: ["string", "null"],
         description: "The property address this email is most likely about, based on the content. Null if unclear.",
-        nullable: true,
       },
       show_auto_respond: {
         type: "boolean",
         description: "Whether this email is appropriate for an auto-respond draft. True for tenant requests, HOA notices, and maintenance requests. False for bills, tax notices, and automated messages.",
       },
       violation_tag: {
-        type: "string",
+        type: ["string", "null"],
         description: "A short tag if the email contains a violation, urgent issue, or lease concern. Examples: 'Violation', 'Urgent', 'Lease violation'. Null if not applicable.",
-        nullable: true,
       },
     },
     required: ["theme", "key_points", "property_match", "show_auto_respond", "violation_tag"],

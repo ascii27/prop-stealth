@@ -145,7 +145,7 @@ router.post("/emails/:id/draft", requireAuth, async (req: Request, res: Response
 
     await createDraftReply(
       refreshedTokens,
-      email.gmail_message_id, // threadId — we stored message ID, use as thread reference
+      email.gmail_thread_id || email.gmail_message_id,
       email.gmail_message_id,
       email.sender,
       email.subject || "",
