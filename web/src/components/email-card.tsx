@@ -5,14 +5,30 @@ import type { Email } from "@/lib/types";
 
 interface EmailCardProps {
   email: Email;
+  onAutoRespond?: (emailId: string) => Promise<void>;
 }
 
-export function EmailCard({ email }: EmailCardProps) {
+export function EmailCard({ email, onAutoRespond }: EmailCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [drafting, setDrafting] = useState(false);
+  const [drafted, setDrafted] = useState(false);
 
   const context = email.unit
     ? `${email.unit} · ${email.timestamp}`
     : email.timestamp;
+
+  async function handleAutoRespond() {
+    if (!onAutoRespond) return;
+    setDrafting(true);
+    try {
+      await onAutoRespond(email.id);
+      setDrafted(true);
+    } catch {
+      // ignore — parent can show errors
+    } finally {
+      setDrafting(false);
+    }
+  }
 
   return (
     <div className="border border-gray-200 rounded-lg p-3 mb-1.5">
@@ -50,10 +66,19 @@ export function EmailCard({ email }: EmailCardProps) {
 
         {/* Right */}
         <div className="flex gap-1.5 ml-3 flex-shrink-0">
-          {email.showAutoRespond && (
-            <button className="bg-brand text-white px-2.5 py-1 rounded-[5px] text-[11px] whitespace-nowrap">
-              Auto-respond
+          {email.showAutoRespond && !drafted && (
+            <button
+              onClick={handleAutoRespond}
+              disabled={drafting}
+              className="bg-brand text-white px-2.5 py-1 rounded-[5px] text-[11px] whitespace-nowrap disabled:opacity-50"
+            >
+              {drafting ? "Drafting..." : "Auto-respond"}
             </button>
+          )}
+          {drafted && (
+            <span className="text-[11px] text-green-600 px-2.5 py-1">
+              Draft created
+            </span>
           )}
           <button
             className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-[5px] text-[11px]"

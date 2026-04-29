@@ -1,4 +1,4 @@
-export type EmailTheme = "tenant" | "hoa" | "bill" | "other";
+export type EmailTheme = "tenant" | "hoa" | "bill" | "maintenance" | "other";
 
 export interface Property {
   id: string;

@@ -16,7 +16,11 @@ export const config = {
     callbackUrl:
       process.env.GOOGLE_CALLBACK_URL ||
       "http://localhost:3000/api/auth/google/callback",
+    gmailCallbackUrl:
+      process.env.GMAIL_CALLBACK_URL ||
+      "http://localhost:3000/api/gmail/callback",
   },
   cookieName: "propstealth_session",
   sessionMaxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY || "",
 } as const;

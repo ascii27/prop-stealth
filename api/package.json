@@ -9,9 +9,11 @@
     "migrate": "tsx src/db/migrate.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.91.1",
     "cookie-parser": "^1.4.7",
     "dotenv": "^16",
     "express": "^5",
+    "googleapis": "^171.4.0",
     "helmet": "^8",
     "jsonwebtoken": "^9",
     "morgan": "^1.10",

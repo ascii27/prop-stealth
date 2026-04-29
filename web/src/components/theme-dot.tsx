@@ -8,6 +8,7 @@ const themeConfig: Record<EmailTheme, { dot: string; label: string }> = {
   tenant: { dot: "bg-blue-600", label: "TENANT" },
   hoa: { dot: "bg-purple-600", label: "HOA" },
   bill: { dot: "bg-brand", label: "BILL" },
+  maintenance: { dot: "bg-amber-600", label: "MAINTENANCE" },
   other: { dot: "bg-gray-500", label: "OTHER" },
 };
 
