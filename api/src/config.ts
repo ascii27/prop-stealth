@@ -22,4 +22,5 @@ export const config = {
   },
   cookieName: "propstealth_session",
   sessionMaxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY || "",
 } as const;
