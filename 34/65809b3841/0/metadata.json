@@ -1,0 +1,54 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "3465809b3841",
+  "session_id": "daf2cd63-90ba-4122-8aa9-7d9befc61ec3",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-03T12:39:52.034202Z",
+  "branch": "feat/tenant-review-mvp",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "docs/superpowers/specs/2026-05-03-tenant-review-design.md",
+    "docs/superpowers/plans/2026-05-03-tenant-review-mvp.md"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-4-7[1m]",
+  "turn_id": "f256dd501882",
+  "checkpoint_transcript_start": 234,
+  "transcript_lines_at_start": 234,
+  "token_usage": {
+    "input_tokens": 30,
+    "cache_creation_tokens": 225197,
+    "cache_read_tokens": 2540283,
+    "output_tokens": 160630,
+    "api_call_count": 16
+  },
+  "session_metrics": {
+    "turn_count": 15
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-03T12:39:52.00711Z",
+    "agent_lines": 6387,
+    "agent_removed": 4,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 6387,
+    "total_lines_changed": 6391,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 177,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/agents/entire-search.md": 25,
+        ".claude/settings.json": 84,
+        ".claude/settings.local.json": 68
+      }
+    }
+  ]
+}
