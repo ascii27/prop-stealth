@@ -73,12 +73,19 @@ Term note: existing column and table names use `owner` (e.g. `properties.owner_i
 
 - `users` — `id, email, name, avatar_url, role ('owner'|'agent'), google_id, created_at, updated_at`. No schema change.
 - `sessions` — unchanged.
-- `agent_clients` — kept; **add** `invite_token VARCHAR(64) UNIQUE`, `invite_token_expires_at TIMESTAMPTZ`, `invite_consumed_at TIMESTAMPTZ`.
+- `agent_clients` — kept as-is. The active agent↔owner link.
+- `invitations` — kept; **add** `invite_token VARCHAR(64) UNIQUE`, `invite_token_expires_at TIMESTAMPTZ`, `invite_consumed_at TIMESTAMPTZ`. Existing fields (`agent_id, email, name, message, status`) stay. Token is generated on invite create and consumed during the OAuth callback when the owner accepts.
 
 ### 5.2 `properties` (existing, trimmed)
 
-Drop columns not used in this scope (mortgage holder, insurance, HOA, tax parcel, purchase price, current value).
-Final shape: `id, owner_id, created_by_agent_id, address, city, state, zip, property_type, bedrooms, bathrooms, monthly_rent_target, notes, created_at, updated_at`.
+Existing columns: `id, user_id, address, city, state, beds, baths, unit, occupied, tenant_name, created_at, updated_at`.
+
+- **Rename** `user_id` → `owner_id` (aligns with spec terminology).
+- **Drop** `unit, occupied, tenant_name` (not used in this scope; tenant occupancy now lives on `tenants`).
+- **Add** `created_by_agent_id UUID REFERENCES users(id)` (nullable for owner-self-created), `zip VARCHAR(10)`, `property_type VARCHAR(40)`, `monthly_rent_target NUMERIC`, `notes TEXT`.
+
+Final shape: `id, owner_id, created_by_agent_id, address, city, state, zip, beds, baths, property_type, monthly_rent_target, notes, created_at, updated_at`.
+
 Read/write permission: the owner and their linked agent both have full edit access.
 
 ### 5.3 `tenants` (new)
@@ -265,7 +272,7 @@ Two Claude calls via `@anthropic-ai/sdk`, both run inline in the request handler
 ### 11.5 API — new
 
 - Migrations:
-  - `006_drop_inbox_tables.sql` — drops `agent_runs, gmail_connections, inbox_emails, evaluations`; adds `invite_token, invite_token_expires_at, invite_consumed_at` to `agent_clients`; trims `properties` columns.
+  - `006_drop_inbox_tables.sql` — drops `agent_runs, gmail_connections, inbox_emails, evaluations`; adds invite-token columns to `invitations`; renames `properties.user_id` → `owner_id`, drops `unit/occupied/tenant_name`, adds `created_by_agent_id/zip/property_type/monthly_rent_target/notes`.
   - `007_create_tenant_tables.sql` — `tenants, tenant_documents, tenant_evaluations, tenant_thread_events`.
   - `008_create_email_outbox.sql`.
 - Routes: `routes/tenants.ts`, `routes/tenant-documents.ts`, `routes/invites.ts`.
