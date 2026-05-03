@@ -6,6 +6,10 @@ import { runExtraction } from "../agents/tenant-eval/extract.js";
 import { runEvaluation } from "../agents/tenant-eval/evaluate.js";
 import { createLocalStorage } from "../storage/local.js";
 import { config as appConfig } from "../config.js";
+import { enqueueEmail } from "../email/outbox.js";
+import { renderTenantsShared } from "../email/templates/tenants_shared.js";
+import { renderThreadMessage } from "../email/templates/thread_message.js";
+import { renderDecision } from "../email/templates/decision.js";
 
 const router = Router();
 const storage = createLocalStorage(appConfig.uploadDir);
@@ -476,6 +480,50 @@ router.post(
          RETURNING *`,
         [req.params.id, userId, body],
       );
+
+      // Notify the OTHER party. If the agent posted, the owner gets the email
+      // (and vice versa). Skips silently if the recipient row is missing.
+      const tInfo = await db.query(
+        `SELECT t.applicant_name, p.owner_id, t.created_by_agent_id
+           FROM tenants t JOIN properties p ON p.id = t.property_id
+          WHERE t.id = $1`,
+        [req.params.id],
+      );
+      const recipientId =
+        role === "agent"
+          ? tInfo.rows[0].owner_id
+          : tInfo.rows[0].created_by_agent_id;
+      const recipientRole: "owner" | "agent" =
+        role === "agent" ? "owner" : "agent";
+
+      const recipient = await db.query(
+        `SELECT email, name FROM users WHERE id = $1`,
+        [recipientId],
+      );
+      const author = await db.query(
+        `SELECT name FROM users WHERE id = $1`,
+        [userId],
+      );
+
+      if (recipient.rows.length > 0) {
+        const tpl = renderThreadMessage({
+          recipientName: recipient.rows[0].name,
+          authorName: author.rows[0]?.name || null,
+          applicantName: tInfo.rows[0].applicant_name,
+          body,
+          tenantId: req.params.id,
+          recipientRole,
+        });
+        await enqueueEmail({
+          toEmail: recipient.rows[0].email,
+          toUserId: recipientId,
+          subject: tpl.subject,
+          bodyHtml: tpl.html,
+          bodyText: tpl.text,
+          templateKey: "thread_message",
+        });
+      }
+
       res.status(201).json({ event: insert.rows[0] });
     } catch (err) {
       console.error("Post thread error:", err);
@@ -535,6 +583,47 @@ router.post("/share", requireAuth, async (req: Request, res: Response) => {
       if (!byOwner.has(row.owner_id)) byOwner.set(row.owner_id, []);
       byOwner.get(row.owner_id)!.push(row.id);
     }
+
+    // One email per recipient owner. Picks up the latest complete evaluation
+    // overall_score per tenant for the email body. Agent name is shared across
+    // all owner emails.
+    const agentRow = await db.query(`SELECT name FROM users WHERE id = $1`, [
+      userId,
+    ]);
+    for (const [ownerId, ids] of byOwner.entries()) {
+      const ownerRow = await db.query(
+        `SELECT email, name FROM users WHERE id = $1`,
+        [ownerId],
+      );
+      if (ownerRow.rows.length === 0) continue;
+
+      const tenantsRes = await db.query(
+        `SELECT t.id, t.applicant_name,
+                p.address || ', ' || p.city || ', ' || p.state AS property_address,
+                (SELECT te.overall_score FROM tenant_evaluations te
+                  WHERE te.tenant_id = t.id AND te.status = 'complete'
+                  ORDER BY te.created_at DESC LIMIT 1) AS overall_score
+           FROM tenants t
+           JOIN properties p ON p.id = t.property_id
+          WHERE t.id = ANY($1::uuid[])`,
+        [ids],
+      );
+
+      const tpl = renderTenantsShared({
+        ownerName: ownerRow.rows[0].name,
+        agentName: agentRow.rows[0]?.name || null,
+        tenants: tenantsRes.rows,
+      });
+      await enqueueEmail({
+        toEmail: ownerRow.rows[0].email,
+        toUserId: ownerId,
+        subject: tpl.subject,
+        bodyHtml: tpl.html,
+        bodyText: tpl.text,
+        templateKey: "tenants_shared",
+      });
+    }
+
     res.json({ shared: tenantIds, by_owner: Array.from(byOwner.entries()) });
   } catch (err) {
     console.error("Share error:", err);
@@ -614,6 +703,38 @@ router.post(
          VALUES ($1, $2, $3, $4)`,
         [req.params.id, decision, userId, note],
       );
+
+      const tInfo = await db.query(
+        `SELECT t.applicant_name, t.created_by_agent_id
+           FROM tenants t WHERE t.id = $1`,
+        [req.params.id],
+      );
+      const agent = await db.query(
+        `SELECT email, name FROM users WHERE id = $1`,
+        [tInfo.rows[0].created_by_agent_id],
+      );
+      const owner = await db.query(`SELECT name FROM users WHERE id = $1`, [
+        userId,
+      ]);
+      if (agent.rows.length > 0) {
+        const tpl = renderDecision({
+          agentName: agent.rows[0].name,
+          ownerName: owner.rows[0]?.name || null,
+          applicantName: tInfo.rows[0].applicant_name,
+          decision,
+          note,
+          tenantId: req.params.id,
+        });
+        await enqueueEmail({
+          toEmail: agent.rows[0].email,
+          toUserId: tInfo.rows[0].created_by_agent_id,
+          subject: tpl.subject,
+          bodyHtml: tpl.html,
+          bodyText: tpl.text,
+          templateKey: "decision",
+        });
+      }
+
       res.json({ success: true });
     } catch (err) {
       console.error("Decision error:", err);

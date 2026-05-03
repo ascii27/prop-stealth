@@ -3,6 +3,8 @@ import { requireAuth } from "../middleware/auth.js";
 import { JwtPayload } from "../types.js";
 import { db } from "../db/client.js";
 import { generateInviteToken, inviteExpiry } from "../invites/tokens.js";
+import { enqueueEmail } from "../email/outbox.js";
+import { renderInvite } from "../email/templates/invite.js";
 
 const router = Router();
 
@@ -168,6 +170,29 @@ router.post("/invitations", requireAuth, async (req: Request, res: Response) => 
       );
       result.rows[0].status = "accepted";
       result.rows[0].invite_consumed_at = new Date();
+    }
+
+    // Send the invite email only when the owner did NOT auto-link.
+    // Auto-link means they already had an account; the invite email's only
+    // purpose is to deliver the magic-link token, which we just consumed.
+    if (result.rows[0].status !== "accepted") {
+      const agentResult = await db.query(
+        "SELECT name FROM users WHERE id = $1",
+        [userId],
+      );
+      const tpl = renderInvite({
+        ownerName: name,
+        agentName: agentResult.rows[0]?.name || null,
+        message: message || null,
+        token,
+      });
+      await enqueueEmail({
+        toEmail: email,
+        subject: tpl.subject,
+        bodyHtml: tpl.html,
+        bodyText: tpl.text,
+        templateKey: "invite",
+      });
     }
 
     res.status(201).json({ invitation: result.rows[0] });
