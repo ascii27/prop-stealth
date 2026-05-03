@@ -1,0 +1,53 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "a860fbd2b4b1",
+  "session_id": "37c0afd9-1a2c-4a5e-8a94-b6563a8ac051",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-03T14:59:15.74437Z",
+  "branch": "feat/tenant-review-mvp",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "docs/superpowers/plans/2026-05-03-agent-clients-management.md"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-4-7[1m]",
+  "turn_id": "67c27245352c",
+  "checkpoint_transcript_start": 276,
+  "transcript_lines_at_start": 276,
+  "token_usage": {
+    "input_tokens": 9,
+    "cache_creation_tokens": 7946,
+    "cache_read_tokens": 464856,
+    "output_tokens": 7498,
+    "api_call_count": 4
+  },
+  "session_metrics": {
+    "turn_count": 6
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-03T14:59:15.730431Z",
+    "agent_lines": 398,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 398,
+    "total_lines_changed": 398,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 183,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/agents/entire-search.md": 25,
+        ".claude/settings.json": 84,
+        ".claude/settings.local.json": 74
+      }
+    }
+  ]
+}
