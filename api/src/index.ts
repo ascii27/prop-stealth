@@ -8,6 +8,7 @@ import authRoutes from "./routes/auth.js";
 import propertyRoutes from "./routes/properties.js";
 import clientRoutes from "./routes/clients.js";
 import inviteRoutes from "./routes/invites.js";
+import tenantRoutes from "./routes/tenants.js";
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/properties", propertyRoutes);
 app.use("/api/clients", clientRoutes);
 app.use("/api/invites", inviteRoutes);
+app.use("/api/tenants", tenantRoutes);
 
 // Health check
 app.get("/api/health", (_req, res) => {
