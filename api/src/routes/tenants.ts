@@ -2,8 +2,13 @@ import { Router, Request, Response } from "express";
 import { requireAuth } from "../middleware/auth.js";
 import { JwtPayload } from "../types.js";
 import { db } from "../db/client.js";
+import { runExtraction } from "../agents/tenant-eval/extract.js";
+import { runEvaluation } from "../agents/tenant-eval/evaluate.js";
+import { createLocalStorage } from "../storage/local.js";
+import { config as appConfig } from "../config.js";
 
 const router = Router();
+const storage = createLocalStorage(appConfig.uploadDir);
 
 const TENANT_COLS = `id, property_id, created_by_agent_id, status, applicant_name,
                      email, phone, employer, monthly_income, move_in_date, notes,
@@ -219,5 +224,201 @@ router.patch("/:id", requireAuth, async (req: Request<{ id: string }>, res: Resp
     res.status(500).json({ error: "Failed to update tenant" });
   }
 });
+
+// POST /:id/extract — agent-only. Runs AI extraction inline, fills in any
+// missing tenant fields (existing values are preserved), returns updated tenant.
+router.post(
+  "/:id/extract",
+  requireAuth,
+  async (req: Request<{ id: string }>, res: Response) => {
+    try {
+      const { userId, role } = req.user as JwtPayload;
+      if (role !== "agent") {
+        res.status(403).json({ error: "Only agents can run extraction" });
+        return;
+      }
+      const access = await tenantAccess(userId, role, req.params.id);
+      if (!access.allowed) {
+        res.status(404).json({ error: "Tenant not found" });
+        return;
+      }
+
+      const docs = await db.query(
+        `SELECT * FROM tenant_documents WHERE tenant_id = $1`,
+        [req.params.id],
+      );
+      if (docs.rows.length === 0) {
+        res.status(400).json({ error: "Upload at least one document first" });
+        return;
+      }
+
+      const extracted = await runExtraction(storage, docs.rows);
+      const updated = await db.query(
+        `UPDATE tenants
+            SET applicant_name = COALESCE(applicant_name, $1),
+                email          = COALESCE(email, $2),
+                phone          = COALESCE(phone, $3),
+                employer       = COALESCE(employer, $4),
+                monthly_income = COALESCE(monthly_income, $5),
+                move_in_date   = COALESCE(move_in_date, $6),
+                updated_at = NOW()
+          WHERE id = $7
+          RETURNING ${TENANT_COLS}`,
+        [
+          extracted.applicant_name,
+          extracted.email,
+          extracted.phone,
+          extracted.employer,
+          extracted.monthly_income,
+          extracted.move_in_date,
+          req.params.id,
+        ],
+      );
+      res.json({ tenant: updated.rows[0], extracted });
+    } catch (err) {
+      console.error("Extraction error:", err);
+      res
+        .status(500)
+        .json({ error: (err as Error).message || "Extraction failed" });
+    }
+  },
+);
+
+// POST /:id/evaluate — agent-only. Inserts a 'running' evaluation row, returns
+// 202 immediately, then runs the model in the background and writes back the
+// result. Client polls GET /:id/evaluation.
+router.post(
+  "/:id/evaluate",
+  requireAuth,
+  async (req: Request<{ id: string }>, res: Response) => {
+    try {
+      const { userId, role } = req.user as JwtPayload;
+      if (role !== "agent") {
+        res.status(403).json({ error: "Only agents can run evaluations" });
+        return;
+      }
+      const access = await tenantAccess(userId, role, req.params.id);
+      if (!access.allowed) {
+        res.status(404).json({ error: "Tenant not found" });
+        return;
+      }
+
+      const tenant = await db.query(`SELECT * FROM tenants WHERE id = $1`, [
+        req.params.id,
+      ]);
+      const property = await db.query(
+        `SELECT * FROM properties WHERE id = $1`,
+        [tenant.rows[0].property_id],
+      );
+      const docs = await db.query(
+        `SELECT * FROM tenant_documents WHERE tenant_id = $1`,
+        [req.params.id],
+      );
+      if (docs.rows.length === 0) {
+        res.status(400).json({ error: "Upload documents first" });
+        return;
+      }
+
+      const evalRow = await db.query(
+        `INSERT INTO tenant_evaluations (tenant_id, status)
+         VALUES ($1, 'running')
+         RETURNING *`,
+        [req.params.id],
+      );
+      await db.query(
+        `UPDATE tenants SET status = 'evaluating', updated_at = NOW() WHERE id = $1`,
+        [req.params.id],
+      );
+
+      // Fire-and-forget. Process restart drops in-flight evaluations — the
+      // tenant_evaluations row stays in 'running' status until manually cleared
+      // or re-run. Acceptable for MVP; revisit if reliability matters more.
+      (async () => {
+        try {
+          const { result, modelUsed } = await runEvaluation(
+            storage,
+            tenant.rows[0],
+            property.rows[0],
+            docs.rows,
+          );
+          await db.query(
+            `UPDATE tenant_evaluations
+                SET status = 'complete',
+                    overall_score = $1,
+                    recommendation = $2,
+                    category_scores = $3,
+                    summary = $4,
+                    concerns = $5,
+                    verified_facts = $6,
+                    model_used = $7,
+                    completed_at = NOW()
+              WHERE id = $8`,
+            [
+              result.overall_score,
+              result.recommendation,
+              JSON.stringify(result.category_scores),
+              result.summary,
+              JSON.stringify(result.concerns),
+              JSON.stringify(result.verified_facts),
+              modelUsed,
+              evalRow.rows[0].id,
+            ],
+          );
+          await db.query(
+            `UPDATE tenants SET status = 'ready', updated_at = NOW() WHERE id = $1`,
+            [req.params.id],
+          );
+        } catch (err) {
+          await db.query(
+            `UPDATE tenant_evaluations
+                SET status = 'failed', error = $1, completed_at = NOW()
+              WHERE id = $2`,
+            [(err as Error).message, evalRow.rows[0].id],
+          );
+          await db.query(
+            `UPDATE tenants SET status = 'draft', updated_at = NOW() WHERE id = $1`,
+            [req.params.id],
+          );
+        }
+      })();
+
+      res.status(202).json({ evaluation: evalRow.rows[0] });
+    } catch (err) {
+      console.error("Evaluate error:", err);
+      res.status(500).json({ error: "Failed to start evaluation" });
+    }
+  },
+);
+
+// GET /:id/evaluation — return the latest evaluation row for the tenant.
+router.get(
+  "/:id/evaluation",
+  requireAuth,
+  async (req: Request<{ id: string }>, res: Response) => {
+    try {
+      const { userId, role } = req.user as JwtPayload;
+      const access = await tenantAccess(userId, role, req.params.id);
+      if (!access.allowed) {
+        res.status(404).json({ error: "Tenant not found" });
+        return;
+      }
+      const result = await db.query(
+        `SELECT * FROM tenant_evaluations
+          WHERE tenant_id = $1
+          ORDER BY created_at DESC
+          LIMIT 1`,
+        [req.params.id],
+      );
+      if (result.rows.length === 0) {
+        res.json({ evaluation: null });
+        return;
+      }
+      res.json({ evaluation: result.rows[0] });
+    } catch (err) {
+      console.error("Get evaluation error:", err);
+      res.status(500).json({ error: "Failed to get evaluation" });
+    }
+  },
+);
 
 export default router;
