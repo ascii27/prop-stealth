@@ -35,6 +35,7 @@
 - Magic-link invite end-to-end: agent creates invite → API issues token → `/invite/[token]` page validates → "Continue with Google" carries token → callback validates email match, creates owner, links agent_clients, marks invitation accepted.
 - Invite errors surface to the user via login page (`?error=invite_invalid|invite_expired|invite_email_mismatch`).
 - Properties API is role-aware: owners list/edit their own; agents list across linked owners and create on behalf of a linked owner. Owner-only delete. Owner properties pages read/write through the API with the v1 fields (zip, property_type, monthly_rent_target, notes).
+- Agent clients management (ahead-of-schedule slice of J1+J5): `/agent/clients` list page (accepted + pending) with cancel-invite, `/agent/clients/[id]` detail page with read-only properties and Remove client. Sidebar Clients header is now a link. Backed by new `DELETE /api/clients/:id` and `DELETE /api/clients/invitations/:id`. URL rename to `/agent/owners/*` is still deferred to J1; agent property add/edit still in J5.
 
 ## What's stubbed or placeholder
 
@@ -47,7 +48,7 @@
 - URL: `https://wyvern-zebra.exe.xyz`
 - API: `:4000`, web: `:8000`, postgres local on the box, Mailpit NOT installed there yet (no email sending in any phase before I anyway).
 - The Google OAuth client (`771221835755-654rud12afgptef5s0rdd7gsk65knrnb`) has the sandbox callback `https://wyvern-zebra.exe.xyz/api/auth/google/callback` registered.
-- Sandbox redeployed at end of Phase D (HEAD = `22fab0a`).
+- Sandbox redeployed after the agent-clients-management slice (HEAD = `b9a7ef0`).
 
 ## Known gaps / follow-ups (not blocking)
 
@@ -77,7 +78,7 @@ Carry these forward as we move through later phases:
 
 1. Read this file and `docs/superpowers/plans/2026-05-03-tenant-review-mvp.md` (Phase E onwards).
 2. Confirm with `git branch --show-current` you're on `feat/tenant-review-mvp`. If not: `git checkout feat/tenant-review-mvp && git pull`.
-3. Verify state: `git log --oneline -3` should show `22fab0a` on top.
+3. Verify state: `git log --oneline -3` should show `b9a7ef0` on top.
 4. Verify infra: `docker compose up -d` (postgres + mailpit), `npm install`, `npm run dev`.
 5. Pick up Phase E — task E1 is the local storage abstraction (`api/src/storage/local.ts`) with vitest coverage; E2 is tenant CRUD (`api/src/routes/tenants.ts`). Plan text starts at line 2269 of the plan file.
 6. Continue subagent-driven cadence: bundle small/coupled tasks, dispatch implementer + spec reviewer + code-quality reviewer per bundle, deploy to sandbox at the end of each phase.
