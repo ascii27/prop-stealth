@@ -10,7 +10,7 @@ router.get("/", requireAuth, async (req: Request, res: Response) => {
   try {
     const { userId } = req.user as JwtPayload;
     const result = await db.query(
-      "SELECT * FROM properties WHERE user_id = $1 ORDER BY created_at DESC",
+      "SELECT * FROM properties WHERE owner_id = $1 ORDER BY created_at DESC",
       [userId],
     );
     res.json({ properties: result.rows });
@@ -25,7 +25,7 @@ router.get("/:id", requireAuth, async (req: Request, res: Response) => {
   try {
     const { userId } = req.user as JwtPayload;
     const result = await db.query(
-      "SELECT * FROM properties WHERE id = $1 AND user_id = $2",
+      "SELECT * FROM properties WHERE id = $1 AND owner_id = $2",
       [req.params.id, userId],
     );
     if (result.rows.length === 0) {
@@ -43,7 +43,7 @@ router.get("/:id", requireAuth, async (req: Request, res: Response) => {
 router.post("/", requireAuth, async (req: Request, res: Response) => {
   try {
     const { userId } = req.user as JwtPayload;
-    const { address, city, state, beds, baths, unit, occupied, tenant_name } = req.body;
+    const { address, city, state, beds, baths } = req.body;
 
     if (!address || !city || !state) {
       res.status(400).json({ error: "address, city, and state are required" });
@@ -51,10 +51,10 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
     }
 
     const result = await db.query(
-      `INSERT INTO properties (user_id, address, city, state, beds, baths, unit, occupied, tenant_name)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO properties (owner_id, address, city, state, beds, baths)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [userId, address, city, state, beds || 0, baths || 0, unit || null, occupied || false, tenant_name || null],
+      [userId, address, city, state, beds || 0, baths || 0],
     );
     res.status(201).json({ property: result.rows[0] });
   } catch (err) {
@@ -67,7 +67,7 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
 router.put("/:id", requireAuth, async (req: Request, res: Response) => {
   try {
     const { userId } = req.user as JwtPayload;
-    const { address, city, state, beds, baths, unit, occupied, tenant_name } = req.body;
+    const { address, city, state, beds, baths } = req.body;
 
     const result = await db.query(
       `UPDATE properties
@@ -76,13 +76,10 @@ router.put("/:id", requireAuth, async (req: Request, res: Response) => {
            state = COALESCE($3, state),
            beds = COALESCE($4, beds),
            baths = COALESCE($5, baths),
-           unit = $6,
-           occupied = COALESCE($7, occupied),
-           tenant_name = $8,
            updated_at = NOW()
-       WHERE id = $9 AND user_id = $10
+       WHERE id = $6 AND owner_id = $7
        RETURNING *`,
-      [address, city, state, beds, baths, unit, occupied, tenant_name, req.params.id, userId],
+      [address, city, state, beds, baths, req.params.id, userId],
     );
 
     if (result.rows.length === 0) {
@@ -101,7 +98,7 @@ router.delete("/:id", requireAuth, async (req: Request, res: Response) => {
   try {
     const { userId } = req.user as JwtPayload;
     const result = await db.query(
-      "DELETE FROM properties WHERE id = $1 AND user_id = $2 RETURNING id",
+      "DELETE FROM properties WHERE id = $1 AND owner_id = $2 RETURNING id",
       [req.params.id, userId],
     );
     if (result.rows.length === 0) {

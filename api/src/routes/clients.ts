@@ -27,7 +27,7 @@ router.get("/", requireAuth, async (req: Request, res: Response) => {
     const clients = await Promise.all(
       result.rows.map(async (client) => {
         const propsResult = await db.query(
-          "SELECT * FROM properties WHERE user_id = $1 ORDER BY created_at DESC",
+          "SELECT * FROM properties WHERE owner_id = $1 ORDER BY created_at DESC",
           [client.id],
         );
         return {
@@ -80,20 +80,13 @@ router.get("/:id", requireAuth, async (req: Request, res: Response) => {
     }
 
     const propsResult = await db.query(
-      "SELECT * FROM properties WHERE user_id = $1 ORDER BY created_at DESC",
-      [req.params.id],
-    );
-
-    const evalsResult = await db.query(
-      "SELECT * FROM evaluations WHERE user_id = $1 ORDER BY created_at DESC",
+      "SELECT * FROM properties WHERE owner_id = $1 ORDER BY created_at DESC",
       [req.params.id],
     );
 
     const client = {
       ...userResult.rows[0],
       properties: propsResult.rows,
-      evaluations: evalsResult.rows,
-      vacancyCount: propsResult.rows.filter((p: { occupied: boolean }) => !p.occupied).length,
     };
 
     res.json({ client });
