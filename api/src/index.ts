@@ -10,6 +10,7 @@ import clientRoutes from "./routes/clients.js";
 import inviteRoutes from "./routes/invites.js";
 import tenantRoutes from "./routes/tenants.js";
 import tenantDocumentRoutes from "./routes/tenant-documents.js";
+import { startEmailWorker } from "./email/worker.js";
 
 const app = express();
 
@@ -34,4 +35,5 @@ app.get("/api/health", (_req, res) => {
 
 app.listen(config.port, () => {
   console.log(`API server running on http://localhost:${config.port}`);
+  startEmailWorker();
 });
