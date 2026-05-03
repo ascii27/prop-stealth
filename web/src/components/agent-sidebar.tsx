@@ -62,9 +62,18 @@ export function AgentSidebar() {
           Dashboard
         </Link>
 
-        {/* Clients — label only, not a link */}
+        {/* Clients */}
         <div className="mt-2">
-          <span className="px-2 text-sm text-gray-500">Clients</span>
+          <Link
+            href="/agent/clients"
+            className={`block px-2 py-1.5 rounded-md text-sm ${
+              isActive("/agent/clients")
+                ? "bg-brand-light text-brand font-medium"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Clients
+          </Link>
           <div className="mt-1 flex flex-col gap-0.5 pl-2">
             {clients.length === 0 && pending.length === 0 && (
               <span className="px-2 py-1 text-[11px] text-gray-300">None yet</span>
