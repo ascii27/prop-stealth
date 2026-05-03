@@ -15,20 +15,20 @@
 | B — Invite flow (server) | ✅ done | B1–B4 + email-normalization fix | 5 |
 | C — Invite landing page (web) | ✅ done | C1 | 1 |
 | D — Properties refactor | ✅ done | D1, D2 | 2 |
-| E — Storage + tenant CRUD | ⏳ next | E1, E2 | — |
-| F — Document upload | pending | F1 | — |
+| E — Storage + tenant CRUD | ✅ done | E1, E2 | 2 |
+| F — Document upload | ⏳ next | F1 | — |
 | G — AI pipeline | pending | G1–G6 | — |
 | H — Threads + decisions | pending | H1 | — |
 | I — Email outbox + worker + templates | pending | I1–I4 | — |
 | J — Web dashboards/pages | pending | J1–J10 | — |
 | K — Polish + smoke test | pending | K1–K3 | — |
 
-24 commits on the branch since `main` diverged at `91eea58`. HEAD: `22fab0a`.
+31 commits on the branch since `main` diverged at `91eea58`. HEAD: `a30f363`.
 
 ## What works right now
 
 - Schema is in v1 final shape (10 application tables: users, sessions, agent_clients, invitations + invite tokens, properties + new fields, tenants, tenant_documents, tenant_evaluations, tenant_thread_events, email_outbox).
-- API type-checks clean. 6 vitest tests pass (`api/test/invite-token.test.ts`).
+- API type-checks clean. 9 vitest tests pass (invite-token + storage).
 - Web build clean (only pre-existing lint issues remain).
 - Mailpit running locally on `:1025` SMTP and `:8025` web UI.
 - Google OAuth sign-in works for both roles.
@@ -36,6 +36,8 @@
 - Invite errors surface to the user via login page (`?error=invite_invalid|invite_expired|invite_email_mismatch`).
 - Properties API is role-aware: owners list/edit their own; agents list across linked owners and create on behalf of a linked owner. Owner-only delete. Owner properties pages read/write through the API with the v1 fields (zip, property_type, monthly_rent_target, notes).
 - Agent clients management (ahead-of-schedule slice of J1+J5): `/agent/clients` list page (accepted + pending) with cancel-invite, `/agent/clients/[id]` detail page with read-only properties and Remove client. Sidebar Clients header is now a link. Backed by new `DELETE /api/clients/:id` and `DELETE /api/clients/invitations/:id`. URL rename to `/agent/owners/*` is still deferred to J1; agent property add/edit still in J5.
+- Local filesystem storage abstraction (`api/src/storage/local.ts`) with put/get/delete/resolveAbsolute, vetted by 3 vitest cases (round-trip, path-escape rejection, delete). Backs the F-phase upload pipeline.
+- Tenants CRUD route (`/api/tenants`): list (owner sees own shared/decided; agent sees across linked owners with filters), get-by-id, create-draft (agent only, must be linked to property's owner), patch (agent only). Owner JOIN exposes property_address/city/state on list rows.
 
 ## What's stubbed or placeholder
 
@@ -48,7 +50,7 @@
 - URL: `https://wyvern-zebra.exe.xyz`
 - API: `:4000`, web: `:8000`, postgres local on the box, Mailpit NOT installed there yet (no email sending in any phase before I anyway).
 - The Google OAuth client (`771221835755-654rud12afgptef5s0rdd7gsk65knrnb`) has the sandbox callback `https://wyvern-zebra.exe.xyz/api/auth/google/callback` registered.
-- Sandbox redeployed after the agent-clients-management slice (HEAD = `b9a7ef0`).
+- Sandbox redeployed after Phase E (HEAD = `a30f363`; PROGRESS update may bump it further).
 
 ## Known gaps / follow-ups (not blocking)
 
@@ -78,9 +80,9 @@ Carry these forward as we move through later phases:
 
 1. Read this file and `docs/superpowers/plans/2026-05-03-tenant-review-mvp.md` (Phase E onwards).
 2. Confirm with `git branch --show-current` you're on `feat/tenant-review-mvp`. If not: `git checkout feat/tenant-review-mvp && git pull`.
-3. Verify state: `git log --oneline -3` should show `b9a7ef0` on top.
+3. Verify state: `git log --oneline -3` should show `a30f363` (or the PROGRESS-update commit on top).
 4. Verify infra: `docker compose up -d` (postgres + mailpit), `npm install`, `npm run dev`.
-5. Pick up Phase E — task E1 is the local storage abstraction (`api/src/storage/local.ts`) with vitest coverage; E2 is tenant CRUD (`api/src/routes/tenants.ts`). Plan text starts at line 2269 of the plan file.
+5. Pick up Phase F — task F1 is `POST /api/tenants/:id/documents` with `multer`, `tenant_documents` insert, and storage write. Plan text starts at line 2658 of the plan file.
 6. Continue subagent-driven cadence: bundle small/coupled tasks, dispatch implementer + spec reviewer + code-quality reviewer per bundle, deploy to sandbox at the end of each phase.
 
 ## Memory hooks
