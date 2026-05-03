@@ -1,0 +1,40 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "08737a5bcd1b",
+  "session_id": "daf2cd63-90ba-4122-8aa9-7d9befc61ec3",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-03T12:47:37.323252Z",
+  "branch": "feat/tenant-review-mvp",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "api/test/.gitkeep",
+    "api/vitest.config.ts"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-4-7[1m]",
+  "turn_id": "77491f9c0237",
+  "checkpoint_transcript_start": 478,
+  "transcript_lines_at_start": 478,
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 0
+  },
+  "session_metrics": {
+    "turn_count": 17
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-03T12:47:37.294474Z",
+    "agent_lines": 13,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 13,
+    "total_lines_changed": 13,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}
