@@ -33,7 +33,6 @@ router.get("/", requireAuth, async (req: Request, res: Response) => {
         return {
           ...client,
           properties: propsResult.rows,
-          vacancyCount: propsResult.rows.filter((p: { occupied: boolean }) => !p.occupied).length,
         };
       }),
     );
