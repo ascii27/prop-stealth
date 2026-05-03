@@ -1,0 +1,14 @@
+Read first: docs/superpowers/PROGRESS.md — single source of truth. Lists what's done, what's next, sandbox state, deferred follow-ups, and the pickup procedure.
+
+  Memory hooks added:
+  - feedback_sandbox_deploy.md — deploy preference (already there)
+  - project_resume_state.md — pointer to PROGRESS.md and current phase
+
+  Quick re-orient command for next session:
+
+  cd /Users/michaelgalloway/dev/prop-stealth
+  git checkout feat/tenant-review-mvp && git pull
+  cat docs/superpowers/PROGRESS.md
+  git log --oneline -5         # should top with 50aa0dc
+
+  Then: "Continue from Phase D" and I'll pick up with the properties refactor (api/src/routes/properties.ts rewrite for role-aware access).
