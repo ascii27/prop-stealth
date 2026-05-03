@@ -1,0 +1,17 @@
+For the agent, I should be able to click on the client link in the side bar and view the existing and pending clients. I should be able to edit and remove clients. In the client edit view, I should see the properties they own.
+
+---
+
+A
+
+---
+
+A
+
+---
+
+A
+
+---
+
+yes

@@ -1,0 +1,25 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "97d7c7e256c8",
+  "strategy": "manual-commit",
+  "branch": "feat/tenant-review-mvp",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "docs/superpowers/specs/2026-05-03-agent-clients-management-design.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/97/d7c7e256c8/0/metadata.json",
+      "transcript": "/97/d7c7e256c8/0/full.jsonl",
+      "content_hash": "/97/d7c7e256c8/0/content_hash.txt",
+      "prompt": "/97/d7c7e256c8/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 40,
+    "cache_creation_tokens": 25717,
+    "cache_read_tokens": 1106722,
+    "output_tokens": 13724,
+    "api_call_count": 11
+  }
+}
