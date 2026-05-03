@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "bb8e9ec9f148",
+  "session_id": "37c0afd9-1a2c-4a5e-8a94-b6563a8ac051",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-03T23:23:44.926092Z",
+  "branch": "feat/tenant-review-mvp",
+  "checkpoints_count": 1,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "claude-opus-4-7[1m]",
+  "turn_id": "6a7b9300c5e8",
+  "token_usage": {
+    "input_tokens": 320,
+    "cache_creation_tokens": 534884,
+    "cache_read_tokens": 16068931,
+    "output_tokens": 90658,
+    "api_call_count": 122
+  },
+  "session_metrics": {
+    "turn_count": 10
+  }
+}
