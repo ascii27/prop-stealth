@@ -128,6 +128,10 @@ function ErrorMessage() {
     auth_failed: "Google sign-in failed. Please try again.",
     invalid_state: "Something went wrong. Please try again.",
     server_error: "Server error. Please try again later.",
+    invite_invalid: "That invite link is not valid. Ask your agent to resend.",
+    invite_expired: "That invite link has expired. Ask your agent to resend.",
+    invite_email_mismatch:
+      "That invite was for a different Google account. Sign in with the email your agent invited.",
   };
 
   return (
