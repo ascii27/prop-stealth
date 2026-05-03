@@ -2,9 +2,27 @@ import { TenantDocument } from "../../types.js";
 import { Storage } from "../../storage/local.js";
 import { PDFParse } from "pdf-parse";
 
+// Anthropic's image input only supports these mime types — heic uploads pass
+// our upload filter but get included as text placeholders here, since the
+// vision API will reject them.
+type ImageMime = "image/jpeg" | "image/png" | "image/webp" | "image/gif";
+const SUPPORTED_IMAGE_MIME: readonly ImageMime[] = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+];
+
+function isSupportedImageMime(m: string): m is ImageMime {
+  return (SUPPORTED_IMAGE_MIME as readonly string[]).includes(m);
+}
+
 export type ContentBlock =
   | { type: "text"; text: string }
-  | { type: "image"; source: { type: "base64"; media_type: string; data: string } }
+  | {
+      type: "image";
+      source: { type: "base64"; media_type: ImageMime; data: string };
+    }
   | {
       type: "document";
       source: { type: "base64"; media_type: "application/pdf"; data: string };
@@ -52,7 +70,7 @@ export async function buildDocumentBlocks(
         type: "document",
         source: { type: "base64", media_type: "application/pdf", data },
       });
-    } else if (doc.mime_type.startsWith("image/")) {
+    } else if (isSupportedImageMime(doc.mime_type)) {
       blocks.push({
         type: "image",
         source: {
