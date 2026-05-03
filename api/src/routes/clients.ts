@@ -197,4 +197,58 @@ router.get("/invitations/list", requireAuth, async (req: Request, res: Response)
   }
 });
 
+// DELETE /invitations/:id — agent cancels a pending invitation
+router.delete(
+  "/invitations/:id",
+  requireAuth,
+  async (req: Request<{ id: string }>, res: Response) => {
+    try {
+      const { userId, role } = req.user as JwtPayload;
+      if (role !== "agent") {
+        res.status(403).json({ error: "Only agents can cancel invitations" });
+        return;
+      }
+      const result = await db.query(
+        "DELETE FROM invitations WHERE id = $1 AND agent_id = $2 AND status = 'pending' RETURNING id",
+        [req.params.id, userId],
+      );
+      if (result.rows.length === 0) {
+        res.status(404).json({ error: "Invitation not found" });
+        return;
+      }
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Cancel invitation error:", err);
+      res.status(500).json({ error: "Failed to cancel invitation" });
+    }
+  },
+);
+
+// DELETE /:id — agent removes the agent_clients link with this owner
+router.delete(
+  "/:id",
+  requireAuth,
+  async (req: Request<{ id: string }>, res: Response) => {
+    try {
+      const { userId, role } = req.user as JwtPayload;
+      if (role !== "agent") {
+        res.status(403).json({ error: "Only agents can remove clients" });
+        return;
+      }
+      const result = await db.query(
+        "DELETE FROM agent_clients WHERE agent_id = $1 AND owner_id = $2 RETURNING owner_id",
+        [userId, req.params.id],
+      );
+      if (result.rows.length === 0) {
+        res.status(404).json({ error: "Client not found" });
+        return;
+      }
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Remove client error:", err);
+      res.status(500).json({ error: "Failed to remove client" });
+    }
+  },
+);
+
 export default router;
