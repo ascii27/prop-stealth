@@ -4,30 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-PropStealth is an AI-native property management platform for real estate agents and small-portfolio landlords (1–5 properties). It uses a fleet of modular AI agents to automate operational work: inbox triage, tenant screening, maintenance coordination, portfolio analysis, and bill management.
+PropStealth is a tenant-review tool for real estate agents and their property-owner clients. Agents source prospective tenants for an owner's property, upload supporting docs, and let an AI score the candidate. The agent shares the candidate with the owner; the owner reviews docs + AI summary, asks questions in a per-tenant thread, and approves or rejects.
 
-The core value prop: a real estate agent can offer ongoing management and wealth-building services to investor clients — turning one-time commissions into recurring relationships — without hiring staff.
-
-The product is a **system of action** (not just a system of record) — agents read, classify, and act on incoming information, surfacing only decisions requiring human input.
+Two roles: **agent** (signs up directly, manages many owners) and **owner** (invited via magic link by an agent, can also self-sign-in after onboarding).
 
 ## Current State
 
 **Monorepo** with two packages:
 - `web/` — Next.js 16 frontend (Tailwind v4, TypeScript)
-- `api/` — Express 5 backend (TypeScript, PostgreSQL)
+- `api/` — Express 5 backend (TypeScript, PostgreSQL, vitest)
 
-### What's built
-- **15 static UI pages** — Homepage, Login, Owner dashboard (Activity Feed, Inbox Agent, Tenant Eval, Properties, Documents, Settings), Agent dashboard (Portfolio Overview, Client Detail, Tenant Pipeline, Help Requests, Invite Client)
-- **Google OAuth authentication** — Passport.js, JWT sessions in HTTP-only cookies, role-based routing (owner/agent)
-- **PostgreSQL database** — users + sessions tables, migration runner
-- **Next.js middleware** — protects `/owner/*` and `/agent/*` routes, redirects unauthenticated users
-- **API proxy** — Next.js rewrites `/api/*` to Express on port 4000
+Auth: Google OAuth via Passport, JWT in HTTP-only cookie. Magic-link invite tokens for first-time owners.
 
-### What's not built yet
-- Email/password auth (fields disabled in UI)
-- Property CRUD API (pages use hardcoded mock data)
-- AI agents (Inbox, Tenant Eval)
-- Real user data in dashboard (currently static mock data)
+Email: nodemailer + SMTP (Mailpit in dev), outbox table + polling worker.
+
+Storage: local filesystem under `api/uploads/`.
+
+AI: `@anthropic-ai/sdk`, two calls per tenant (extract basics, then full evaluation).
 
 ## Architecture
 
