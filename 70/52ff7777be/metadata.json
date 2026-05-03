@@ -1,0 +1,25 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "7052ff7777be",
+  "strategy": "manual-commit",
+  "branch": "feat/tenant-review-mvp",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "docs/superpowers/PROGRESS.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/70/52ff7777be/0/metadata.json",
+      "transcript": "/70/52ff7777be/0/full.jsonl",
+      "content_hash": "/70/52ff7777be/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 1,
+    "cache_creation_tokens": 878,
+    "cache_read_tokens": 362951,
+    "output_tokens": 3051,
+    "api_call_count": 1
+  }
+}
