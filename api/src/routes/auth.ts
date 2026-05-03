@@ -41,18 +41,29 @@ passport.deserializeUser((user: Express.User, done) => {
 // Helper functions
 // ---------------------------------------------------------------------------
 
-function createState(role: string): string {
+function createState(role: string, inviteToken?: string): string {
   const csrf = crypto.randomBytes(16).toString("hex");
-  const payload = JSON.stringify({ role, csrf });
+  const payload = JSON.stringify({ role, csrf, inviteToken: inviteToken || null });
   return Buffer.from(payload).toString("base64url");
 }
 
-function parseState(state: string): { role: string; csrf: string } | null {
+function parseState(
+  state: string,
+): { role: string; csrf: string; inviteToken: string | null } | null {
   try {
     const json = Buffer.from(state, "base64url").toString("utf-8");
     const parsed = JSON.parse(json);
-    if (parsed && typeof parsed.role === "string" && typeof parsed.csrf === "string") {
-      return parsed as { role: string; csrf: string };
+    if (
+      parsed &&
+      typeof parsed.role === "string" &&
+      typeof parsed.csrf === "string"
+    ) {
+      return {
+        role: parsed.role,
+        csrf: parsed.csrf,
+        inviteToken:
+          typeof parsed.inviteToken === "string" ? parsed.inviteToken : null,
+      };
     }
     return null;
   } catch {
@@ -113,13 +124,14 @@ const router = Router();
 // GET /google — initiate OAuth flow
 router.get("/google", (req: Request, res: Response, next) => {
   const role = req.query.role as string | undefined;
+  const inviteToken = (req.query.invite_token as string | undefined) || undefined;
 
   if (role !== "owner" && role !== "agent") {
     res.status(400).json({ error: "role query param must be 'owner' or 'agent'" });
     return;
   }
 
-  const state = createState(role);
+  const state = createState(role, inviteToken);
 
   passport.authenticate("google", {
     scope: ["profile", "email"],
@@ -128,7 +140,6 @@ router.get("/google", (req: Request, res: Response, next) => {
   })(req, res, next);
 });
 
-// GET /google/callback — handle OAuth callback
 router.get(
   "/google/callback",
   passport.authenticate("google", {
@@ -156,13 +167,66 @@ router.get(
         avatarUrl: string | null;
       };
 
+      // If an invite token is present, validate and attach it
+      let invitation: {
+        id: string;
+        agent_id: string;
+        email: string;
+      } | null = null;
+      let effectiveRole = state.role;
+
+      if (state.inviteToken) {
+        const inv = await db.query(
+          `SELECT id, agent_id, email, invite_token, invite_token_expires_at,
+                  invite_consumed_at
+             FROM invitations
+            WHERE invite_token = $1`,
+          [state.inviteToken],
+        );
+        if (inv.rows.length === 0) {
+          res.redirect("/login?error=invite_invalid");
+          return;
+        }
+        const row = inv.rows[0];
+        if (
+          row.invite_consumed_at ||
+          !row.invite_token_expires_at ||
+          new Date(row.invite_token_expires_at).getTime() <= Date.now()
+        ) {
+          res.redirect("/login?error=invite_expired");
+          return;
+        }
+        if (row.email.toLowerCase() !== profile.email.toLowerCase()) {
+          res.redirect("/login?error=invite_email_mismatch");
+          return;
+        }
+        invitation = { id: row.id, agent_id: row.agent_id, email: row.email };
+        effectiveRole = "owner"; // invite always creates an owner
+      }
+
       const user = await findOrCreateUser(
         profile.googleId,
         profile.email,
         profile.name,
         profile.avatarUrl,
-        state.role,
+        effectiveRole,
       );
+
+      if (invitation) {
+        await db.query(
+          `INSERT INTO agent_clients (agent_id, owner_id)
+             VALUES ($1, $2)
+             ON CONFLICT (agent_id, owner_id) DO NOTHING`,
+          [invitation.agent_id, user.id],
+        );
+        await db.query(
+          `UPDATE invitations
+              SET status = 'accepted',
+                  invite_consumed_at = NOW()
+            WHERE id = $1`,
+          [invitation.id],
+        );
+      }
 
       const sessionId = await createSession(user.id);
 
