@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { requireAuth } from "../middleware/auth.js";
 import { JwtPayload } from "../types.js";
 import { db } from "../db/client.js";
+import { generateInviteToken, inviteExpiry } from "../invites/tokens.js";
 
 const router = Router();
 
@@ -95,7 +96,7 @@ router.get("/:id", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-// POST /invitations — create a client invitation
+// POST /invitations — create a client invitation with magic-link token
 router.post("/invitations", requireAuth, async (req: Request, res: Response) => {
   try {
     const { userId, role } = req.user as JwtPayload;
@@ -110,7 +111,7 @@ router.post("/invitations", requireAuth, async (req: Request, res: Response) => 
       return;
     }
 
-    // Check if already invited
+    // Check for an existing pending invite from THIS agent for THIS email
     const existing = await db.query(
       "SELECT * FROM invitations WHERE agent_id = $1 AND email = $2 AND status = 'pending'",
       [userId, email],
@@ -120,7 +121,7 @@ router.post("/invitations", requireAuth, async (req: Request, res: Response) => 
       return;
     }
 
-    // Check if already a client (user exists with this email and is linked)
+    // Already a linked client?
     const existingUser = await db.query(
       `SELECT u.id FROM users u
        JOIN agent_clients ac ON ac.owner_id = u.id AND ac.agent_id = $1
@@ -132,14 +133,18 @@ router.post("/invitations", requireAuth, async (req: Request, res: Response) => 
       return;
     }
 
+    const token = generateInviteToken();
+    const expiresAt = inviteExpiry();
+
     const result = await db.query(
-      `INSERT INTO invitations (agent_id, email, name, message)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO invitations
+         (agent_id, email, name, message, invite_token, invite_token_expires_at)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [userId, email, name, message || null],
+      [userId, email, name, message || null, token, expiresAt],
     );
 
-    // Auto-link if the user already exists as an owner
+    // Auto-link if the user already exists as an owner — skip token, mark accepted
     const ownerResult = await db.query(
       "SELECT id FROM users WHERE email = $1 AND role = 'owner'",
       [email],
@@ -152,10 +157,14 @@ router.post("/invitations", requireAuth, async (req: Request, res: Response) => 
         [userId, ownerResult.rows[0].id],
       );
       await db.query(
-        "UPDATE invitations SET status = 'accepted' WHERE id = $1",
+        `UPDATE invitations
+            SET status = 'accepted',
+                invite_consumed_at = NOW()
+          WHERE id = $1`,
         [result.rows[0].id],
       );
       result.rows[0].status = "accepted";
+      result.rows[0].invite_consumed_at = new Date();
     }
 
     res.status(201).json({ invitation: result.rows[0] });
