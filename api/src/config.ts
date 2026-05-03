@@ -28,5 +28,8 @@ export const config = {
     from: process.env.SMTP_FROM || "PropStealth <noreply@propstealth.local>",
   },
   appBaseUrl: process.env.APP_BASE_URL || "http://localhost:3000",
-  uploadDir: process.env.UPLOAD_DIR || path.resolve(__dirname, "../uploads"),
+  uploadDir: path.resolve(
+    path.join(__dirname, ".."),
+    process.env.UPLOAD_DIR || "uploads",
+  ),
 } as const;
