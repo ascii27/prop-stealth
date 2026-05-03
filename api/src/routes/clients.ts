@@ -105,15 +105,18 @@ router.post("/invitations", requireAuth, async (req: Request, res: Response) => 
       return;
     }
 
-    const { name, email, message } = req.body;
-    if (!name || !email) {
+    const { name, email: rawEmail, message } = req.body;
+    if (!name || !rawEmail) {
       res.status(400).json({ error: "name and email are required" });
       return;
     }
+    // Normalize email to avoid case-mismatch duplicates and to make later
+    // comparisons (Google profile email vs invitation email) consistent.
+    const email = String(rawEmail).trim().toLowerCase();
 
     // Check for an existing pending invite from THIS agent for THIS email
     const existing = await db.query(
-      "SELECT * FROM invitations WHERE agent_id = $1 AND email = $2 AND status = 'pending'",
+      "SELECT * FROM invitations WHERE agent_id = $1 AND LOWER(email) = $2 AND status = 'pending'",
       [userId, email],
     );
     if (existing.rows.length > 0) {
@@ -125,7 +128,7 @@ router.post("/invitations", requireAuth, async (req: Request, res: Response) => 
     const existingUser = await db.query(
       `SELECT u.id FROM users u
        JOIN agent_clients ac ON ac.owner_id = u.id AND ac.agent_id = $1
-       WHERE u.email = $2`,
+       WHERE LOWER(u.email) = $2`,
       [userId, email],
     );
     if (existingUser.rows.length > 0) {
@@ -146,7 +149,7 @@ router.post("/invitations", requireAuth, async (req: Request, res: Response) => 
 
     // Auto-link if the user already exists as an owner — skip token, mark accepted
     const ownerResult = await db.query(
-      "SELECT id FROM users WHERE email = $1 AND role = 'owner'",
+      "SELECT id FROM users WHERE LOWER(email) = $1 AND role = 'owner'",
       [email],
     );
     if (ownerResult.rows.length > 0) {
