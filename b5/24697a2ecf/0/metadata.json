@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "b524697a2ecf",
+  "session_id": "37c0afd9-1a2c-4a5e-8a94-b6563a8ac051",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-03T23:24:55.749433Z",
+  "branch": "feat/tenant-review-mvp",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "api/src/agents/tenant-eval/build-content.ts"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-4-7[1m]",
+  "turn_id": "6a7b9300c5e8",
+  "checkpoint_transcript_start": 730,
+  "transcript_lines_at_start": 730,
+  "token_usage": {
+    "input_tokens": 52,
+    "cache_creation_tokens": 7904,
+    "cache_read_tokens": 2971983,
+    "output_tokens": 3668,
+    "api_call_count": 9
+  },
+  "session_metrics": {
+    "turn_count": 10
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-03T23:24:55.713765Z",
+    "agent_lines": 73,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 73,
+    "total_lines_changed": 73,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}
