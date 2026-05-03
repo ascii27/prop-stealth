@@ -7,6 +7,7 @@ import { config } from "./config.js";
 import authRoutes from "./routes/auth.js";
 import propertyRoutes from "./routes/properties.js";
 import clientRoutes from "./routes/clients.js";
+import inviteRoutes from "./routes/invites.js";
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.use(passport.initialize());
 app.use("/api/auth", authRoutes);
 app.use("/api/properties", propertyRoutes);
 app.use("/api/clients", clientRoutes);
+app.use("/api/invites", inviteRoutes);
 
 // Health check
 app.get("/api/health", (_req, res) => {
