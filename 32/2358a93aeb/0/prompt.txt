@@ -1,0 +1,1 @@
+Use mailpit to test locally, but don't install it on exe.dev.
