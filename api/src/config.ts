@@ -16,11 +16,17 @@ export const config = {
     callbackUrl:
       process.env.GOOGLE_CALLBACK_URL ||
       "http://localhost:3000/api/auth/google/callback",
-    gmailCallbackUrl:
-      process.env.GMAIL_CALLBACK_URL ||
-      "http://localhost:3000/api/gmail/callback",
   },
   cookieName: "propstealth_session",
-  sessionMaxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
+  sessionMaxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   anthropicApiKey: process.env.ANTHROPIC_API_KEY || "",
+  smtp: {
+    host: process.env.SMTP_HOST || "localhost",
+    port: parseInt(process.env.SMTP_PORT || "1025", 10),
+    user: process.env.SMTP_USER || "",
+    pass: process.env.SMTP_PASS || "",
+    from: process.env.SMTP_FROM || "PropStealth <noreply@propstealth.local>",
+  },
+  appBaseUrl: process.env.APP_BASE_URL || "http://localhost:3000",
+  uploadDir: process.env.UPLOAD_DIR || path.resolve(__dirname, "../uploads"),
 } as const;
