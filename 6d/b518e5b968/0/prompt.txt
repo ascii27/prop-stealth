@@ -1,0 +1,63 @@
+Ok we are going to take a different course. We will need a new branch, and we're going to make this a much simpler experience first. There are two actors: The real estate agent, and the Customer. The primary use-case is that the real estate agent will source potential tenents for the customer, create a record in the system for the potential tenant. Upload docs about the tenant, and then an AI will review the docs and generate a summary and a score for the potential tenant. The agent can share any of the tenants with the customer. The customer will recieve a notification via email with a special link that will take them directly to the tenant review list. They can look over the docs, the summary, and ask questions if they have any. They can also reject or approve any of the tenants. The agent can reply to any of the details that are requested through the website as well.
+
+Both the agent and the tenant should use Google to authenticate into the site. The agent can set up basic properties for the customer (and the customer can update the details as well). Agents invite customers to the site. There is a 1:many relationship between agents and customers. 
+
+I want you to review this content, and review some of the original PRDs and create a brand new, simpler PRD and plan for this approach. Archive the older ones, so we don't confuse them with the new planned direction.
+
+Before starting implementation create the plan that I can review. Also the plan should account for any changes needed to the current code base.
+
+---
+
+A
+
+---
+
+Actually for Question 1, let's do C. Question 2: A
+
+---
+
+C
+
+---
+
+B, but the AI should attempt to auto populate the tenant details (basic details only) from the docs. The real estate agent can then correct those details in the structured form.
+
+---
+
+C
+
+---
+
+One email at a time, but if I add multiple new tenants, I should be able to notify about all of the tenants in one email. Let's not use a commercial service for sending right now, just use a local mail library to send the email.
+
+---
+
+Document storage is local for now (A). Question 8: Looks like the right flow. (1): Yes, they should be able to re-open. (2): yes, they should be able to un-share.
+
+---
+
+B
+
+---
+
+Section 1, you can keep the term "owner". Otherwise, this is good
+
+---
+
+No, on the login page, owners can still sign in whenever they want. Keep the toggle. Otherwise this looks good.
+
+---
+
+Yes, looks good
+
+---
+
+1. yes, 2. looks good
+
+---
+
+1. yes, 2. looks good
+
+---
+
+looks good
