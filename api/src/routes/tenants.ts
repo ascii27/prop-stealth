@@ -421,4 +421,244 @@ router.get(
   },
 );
 
+// GET /:id/thread — list events (chronological)
+router.get(
+  "/:id/thread",
+  requireAuth,
+  async (req: Request<{ id: string }>, res: Response) => {
+    try {
+      const { userId, role } = req.user as JwtPayload;
+      const access = await tenantAccess(userId, role, req.params.id);
+      if (!access.allowed) {
+        res.status(404).json({ error: "Tenant not found" });
+        return;
+      }
+      const result = await db.query(
+        `SELECT te.id, te.tenant_id, te.type, te.author_user_id, te.body, te.created_at,
+                u.name AS author_name, u.role AS author_role
+           FROM tenant_thread_events te
+           JOIN users u ON u.id = te.author_user_id
+          WHERE te.tenant_id = $1
+          ORDER BY te.created_at ASC`,
+        [req.params.id],
+      );
+      res.json({ events: result.rows });
+    } catch (err) {
+      console.error("List thread error:", err);
+      res.status(500).json({ error: "Failed to list thread" });
+    }
+  },
+);
+
+// POST /:id/thread — post a message (agent or owner). Owners can only post
+// when status is shared/approved/rejected (enforced via tenantAccess).
+router.post(
+  "/:id/thread",
+  requireAuth,
+  async (req: Request<{ id: string }>, res: Response) => {
+    try {
+      const { userId, role } = req.user as JwtPayload;
+      const access = await tenantAccess(userId, role, req.params.id);
+      if (!access.allowed) {
+        res.status(404).json({ error: "Tenant not found" });
+        return;
+      }
+
+      const body = (req.body.body as string | undefined)?.trim();
+      if (!body) {
+        res.status(400).json({ error: "body is required" });
+        return;
+      }
+
+      const insert = await db.query(
+        `INSERT INTO tenant_thread_events (tenant_id, type, author_user_id, body)
+         VALUES ($1, 'message', $2, $3)
+         RETURNING *`,
+        [req.params.id, userId, body],
+      );
+      res.status(201).json({ event: insert.rows[0] });
+    } catch (err) {
+      console.error("Post thread error:", err);
+      res.status(500).json({ error: "Failed to post message" });
+    }
+  },
+);
+
+// POST /share — agent-only. Body: { tenant_ids: string[] }. Marks each tenant
+// 'shared' and writes a 'shared' thread event. Returns by_owner so Phase I can
+// batch the email per recipient.
+router.post("/share", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { userId, role } = req.user as JwtPayload;
+    if (role !== "agent") {
+      res.status(403).json({ error: "Only agents can share" });
+      return;
+    }
+    const tenantIds = req.body.tenant_ids;
+    if (!Array.isArray(tenantIds) || tenantIds.length === 0) {
+      res.status(400).json({ error: "tenant_ids must be a non-empty array" });
+      return;
+    }
+
+    // Each tenant must be 'ready' AND owned by one of the agent's clients.
+    const verify = await db.query(
+      `SELECT t.id, p.owner_id
+         FROM tenants t
+         JOIN properties p ON p.id = t.property_id
+         JOIN agent_clients ac ON ac.owner_id = p.owner_id AND ac.agent_id = $1
+        WHERE t.id = ANY($2::uuid[]) AND t.status = 'ready'`,
+      [userId, tenantIds],
+    );
+    if (verify.rows.length !== tenantIds.length) {
+      res.status(400).json({
+        error: "Some tenants are not in 'ready' status or not your client's",
+      });
+      return;
+    }
+
+    await db.query(
+      `UPDATE tenants
+          SET status = 'shared', shared_at = NOW(), updated_at = NOW()
+        WHERE id = ANY($1::uuid[])`,
+      [tenantIds],
+    );
+    for (const id of tenantIds) {
+      await db.query(
+        `INSERT INTO tenant_thread_events (tenant_id, type, author_user_id)
+         VALUES ($1, 'shared', $2)`,
+        [id, userId],
+      );
+    }
+
+    const byOwner = new Map<string, string[]>();
+    for (const row of verify.rows) {
+      if (!byOwner.has(row.owner_id)) byOwner.set(row.owner_id, []);
+      byOwner.get(row.owner_id)!.push(row.id);
+    }
+    res.json({ shared: tenantIds, by_owner: Array.from(byOwner.entries()) });
+  } catch (err) {
+    console.error("Share error:", err);
+    res.status(500).json({ error: "Failed to share" });
+  }
+});
+
+// POST /:id/unshare — agent-only. Tenant must currently be 'shared'.
+router.post(
+  "/:id/unshare",
+  requireAuth,
+  async (req: Request<{ id: string }>, res: Response) => {
+    try {
+      const { userId, role } = req.user as JwtPayload;
+      if (role !== "agent") {
+        res.status(403).json({ error: "Only agents can unshare" });
+        return;
+      }
+      const access = await tenantAccess(userId, role, req.params.id);
+      if (!access.allowed || access.status !== "shared") {
+        res.status(400).json({ error: "Tenant is not in 'shared' status" });
+        return;
+      }
+      await db.query(
+        `UPDATE tenants SET status = 'ready', shared_at = NULL, updated_at = NOW()
+          WHERE id = $1`,
+        [req.params.id],
+      );
+      await db.query(
+        `INSERT INTO tenant_thread_events (tenant_id, type, author_user_id)
+         VALUES ($1, 'unshared', $2)`,
+        [req.params.id, userId],
+      );
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Unshare error:", err);
+      res.status(500).json({ error: "Failed to unshare" });
+    }
+  },
+);
+
+// POST /:id/decision — owner-only. Body: { decision: 'approved'|'rejected', note?: string }.
+router.post(
+  "/:id/decision",
+  requireAuth,
+  async (req: Request<{ id: string }>, res: Response) => {
+    try {
+      const { userId, role } = req.user as JwtPayload;
+      if (role !== "owner") {
+        res.status(403).json({ error: "Only owners can decide" });
+        return;
+      }
+      const access = await tenantAccess(userId, role, req.params.id);
+      if (!access.allowed || access.status !== "shared") {
+        res.status(400).json({ error: "Tenant is not in 'shared' status" });
+        return;
+      }
+      const decision = req.body.decision;
+      if (decision !== "approved" && decision !== "rejected") {
+        res
+          .status(400)
+          .json({ error: "decision must be 'approved' or 'rejected'" });
+        return;
+      }
+      const note = req.body.note ? String(req.body.note) : null;
+
+      await db.query(
+        `UPDATE tenants
+            SET status = $1, decided_at = NOW(),
+                decision_by_user_id = $2, decision_note = $3,
+                updated_at = NOW()
+          WHERE id = $4`,
+        [decision, userId, note, req.params.id],
+      );
+      await db.query(
+        `INSERT INTO tenant_thread_events (tenant_id, type, author_user_id, body)
+         VALUES ($1, $2, $3, $4)`,
+        [req.params.id, decision, userId, note],
+      );
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Decision error:", err);
+      res.status(500).json({ error: "Failed to record decision" });
+    }
+  },
+);
+
+// POST /:id/reopen — owner-only. Approved/rejected → shared.
+router.post(
+  "/:id/reopen",
+  requireAuth,
+  async (req: Request<{ id: string }>, res: Response) => {
+    try {
+      const { userId, role } = req.user as JwtPayload;
+      if (role !== "owner") {
+        res.status(403).json({ error: "Only owners can reopen" });
+        return;
+      }
+      const access = await tenantAccess(userId, role, req.params.id);
+      if (!access.allowed || !["approved", "rejected"].includes(access.status)) {
+        res.status(400).json({ error: "Tenant is not in a decided state" });
+        return;
+      }
+      await db.query(
+        `UPDATE tenants
+            SET status = 'shared',
+                decided_at = NULL,
+                decision_by_user_id = NULL,
+                decision_note = NULL,
+                updated_at = NOW()
+          WHERE id = $1`,
+        [req.params.id],
+      );
+      await db.query(
+        `INSERT INTO tenant_thread_events (tenant_id, type, author_user_id)
+         VALUES ($1, 'reopened', $2)`,
+        [req.params.id, userId],
+      );
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Reopen error:", err);
+      res.status(500).json({ error: "Failed to reopen" });
+    }
+  },
+);
+
 export default router;
