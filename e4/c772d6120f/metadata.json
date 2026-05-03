@@ -1,0 +1,25 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "e4c772d6120f",
+  "strategy": "manual-commit",
+  "branch": "feat/tenant-review-mvp",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "api/src/routes/clients.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/e4/c772d6120f/0/metadata.json",
+      "transcript": "/e4/c772d6120f/0/full.jsonl",
+      "content_hash": "/e4/c772d6120f/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 52,
+    "cache_creation_tokens": 8806,
+    "cache_read_tokens": 1141903,
+    "output_tokens": 6978,
+    "api_call_count": 9
+  }
+}
