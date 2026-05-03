@@ -18,12 +18,12 @@
 | E — Storage + tenant CRUD | ✅ done | E1, E2 | 2 |
 | F — Document upload | ✅ done | F1 | 1 |
 | G — AI pipeline | ✅ done | G1–G6 | 6 |
-| H — Threads + decisions | ⏳ next | H1 | — |
-| I — Email outbox + worker + templates | pending | I1–I4 | — |
+| H — Threads + decisions | ✅ done | H1 | 1 |
+| I — Email outbox + worker + templates | ⏳ next | I1–I4 | — |
 | J — Web dashboards/pages | pending | J1–J10 | — |
 | K — Polish + smoke test | pending | K1–K3 | — |
 
-39 commits on the branch since `main` diverged at `91eea58`. HEAD: `aa94845`.
+40 commits on the branch since `main` diverged at `91eea58`. HEAD: `ccbaec5`.
 
 ## What works right now
 
@@ -40,6 +40,7 @@
 - Tenants CRUD route (`/api/tenants`): list (owner sees own shared/decided; agent sees across linked owners with filters), get-by-id, create-draft (agent only, must be linked to property's owner), patch (agent only). Owner JOIN exposes property_address/city/state on list rows.
 - Tenant documents route (`/api/tenant-documents`): upload (agent, multer memory storage, 25 MB cap, mime allowlist for pdf/jpeg/png/webp/heic), list, inline download, delete. Files land at `api/uploads/tenants/<tenantId>/<uuid><ext>`; `api/uploads/` is gitignored.
 - AI pipeline (`api/src/agents/tenant-eval/`): `prompts.ts` (compliance guardrails + extract/evaluate system prompts, model `claude-opus-4-7`), `parse.ts` (with vitest), `build-content.ts` (text + raw PDF + images, pdf-parse v2), `extract.ts` and `evaluate.ts` (Anthropic SDK calls). Wired into the tenants route as `POST /api/tenants/:id/extract`, `POST /api/tenants/:id/evaluate` (background, 202), `GET /api/tenants/:id/evaluation`. Status transitions: draft → evaluating → ready (or → draft on failure).
+- Tenant thread + sharing endpoints (`/api/tenants/...`): GET/POST `/:id/thread`, POST `/share` (batch, agent), POST `/:id/unshare` (agent), POST `/:id/decision` (owner approve/reject with optional note), POST `/:id/reopen` (owner revert). Each transition writes a typed `tenant_thread_events` row. Email side-effects deferred to Phase I.
 
 ## What's stubbed or placeholder
 
@@ -52,7 +53,7 @@
 - URL: `https://wyvern-zebra.exe.xyz`
 - API: `:4000`, web: `:8000`, postgres local on the box, Mailpit NOT installed there yet (no email sending in any phase before I anyway).
 - The Google OAuth client (`771221835755-654rud12afgptef5s0rdd7gsk65knrnb`) has the sandbox callback `https://wyvern-zebra.exe.xyz/api/auth/google/callback` registered.
-- Sandbox redeployed after Phase G (HEAD = `aa94845`; PROGRESS update may bump it further). `ANTHROPIC_API_KEY` is set in both local `api/.env` and sandbox `api/.env`.
+- Sandbox redeployed after Phase H (HEAD = `ccbaec5`; PROGRESS update may bump it further). `ANTHROPIC_API_KEY` is set in both local `api/.env` and sandbox `api/.env`.
 
 ## Known gaps / follow-ups (not blocking)
 
@@ -84,9 +85,9 @@ Carry these forward as we move through later phases:
 
 1. Read this file and `docs/superpowers/plans/2026-05-03-tenant-review-mvp.md` (Phase E onwards).
 2. Confirm with `git branch --show-current` you're on `feat/tenant-review-mvp`. If not: `git checkout feat/tenant-review-mvp && git pull`.
-3. Verify state: `git log --oneline -3` should show `aa94845` (or the PROGRESS-update commit on top).
+3. Verify state: `git log --oneline -3` should show `ccbaec5` (or the PROGRESS-update commit on top).
 4. Verify infra: `docker compose up -d` (postgres + mailpit), `npm install`, `npm run dev`.
-5. Pick up Phase H — H1 is `POST /api/tenants/:id/messages`, `POST /api/tenants/:id/share|unshare|approve|reject|reopen`, plus the thread-events list endpoint. Plan starts at line 3651 of the plan file.
+5. Pick up Phase I — email outbox + worker + templates + triggers. Four tasks (I1–I4): outbox helper with vitest, polling worker, three templates (invite, share, decision/question), and trigger calls inserted into the existing routes. Plan starts at line 3913. Sandbox does NOT yet have Mailpit installed (see follow-up #7).
 6. Continue subagent-driven cadence: bundle small/coupled tasks, dispatch implementer + spec reviewer + code-quality reviewer per bundle, deploy to sandbox at the end of each phase.
 
 ## Memory hooks
