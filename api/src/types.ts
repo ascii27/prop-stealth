@@ -150,6 +150,11 @@ export interface ThreadEvent {
   tenant_id: string;
   type: ThreadEventType;
   author_user_id: string;
+  // author_name and author_role are populated when the event is fetched via
+  // the listing endpoint (which JOINs users). They're null on freshly-inserted
+  // rows that haven't been re-read through the join.
+  author_name: string | null;
+  author_role: UserRole | null;
   body: string | null;
   created_at: Date;
 }

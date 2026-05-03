@@ -27,26 +27,30 @@ AI: `@anthropic-ai/sdk`, two calls per tenant (extract basics, then full evaluat
 ```
 prop-stealth/
 ├── package.json          # npm workspaces: ["web", "api"]
-├── docker-compose.yml    # PostgreSQL 16
+├── docker-compose.yml    # PostgreSQL 16 + Mailpit (dev SMTP)
 ├── scripts/              # Sandbox deploy/status/stop scripts
 ├── web/                  # Next.js 16 + Tailwind v4
 │   ├── src/
 │   │   ├── app/          # App Router: (marketing), (auth), (dashboard)
 │   │   ├── components/   # Shared UI components
-│   │   ├── lib/          # Types + mock data
-│   │   └── middleware.ts  # Auth route protection
+│   │   ├── lib/          # Domain types
+│   │   └── middleware.ts # Auth route protection
 │   └── next.config.ts    # Rewrites /api/* → Express
-├── api/                  # Express 5 + TypeScript
+├── api/                  # Express 5 + TypeScript + vitest
 │   ├── src/
-│   │   ├── index.ts      # App entry (port 4000)
+│   │   ├── index.ts      # App entry (port 4000), email worker boot
 │   │   ├── config.ts     # Env vars
-│   │   ├── types.ts      # User, Session, JwtPayload
+│   │   ├── types.ts      # Domain types (User, Tenant, Property, ...)
 │   │   ├── db/           # pg client, migration runner, SQL migrations
-│   │   ├── routes/       # auth.ts (Google OAuth, logout, /me)
+│   │   ├── routes/       # auth, properties, clients, tenants, ...
+│   │   ├── agents/       # tenant-eval (Claude calls)
+│   │   ├── email/        # nodemailer transport + outbox worker + templates
+│   │   ├── storage/      # Local filesystem storage abstraction
 │   │   └── middleware/   # requireAuth (JWT verification)
+│   ├── uploads/          # Tenant document storage (gitignored)
+│   ├── test/             # vitest tests
 │   └── .env              # Secrets (gitignored)
-├── spec/                 # PRD
-└── docs/superpowers/     # Design specs + implementation plans
+└── docs/superpowers/     # Design specs, implementation plans, archive
 ```
 
 ## Development
@@ -88,25 +92,25 @@ The sandbox runs: web on port 8000, API on port 4000, PostgreSQL locally. Access
 
 ## Auth Flow
 
-1. User selects role (owner/agent) on login page, clicks "Continue with Google"
-2. `GET /api/auth/google?role=owner` → Passport redirects to Google
-3. Google callback → Express creates/finds user, issues JWT cookie
-4. Redirect to `/owner` or `/agent` based on role
-5. Next.js middleware verifies JWT cookie on all dashboard routes
+**Agents** sign in directly: `/login` → role toggle → "Continue with Google" → `GET /api/auth/google?role=agent` → Passport → Google callback → JWT cookie → `/agent`.
+
+**Owners** are invited: agent submits an invite → API generates a 14-day single-use `invite_token` and queues an email (via the outbox worker) → owner clicks the link → `/invite/[token]` validates → "Continue with Google" carries the token in OAuth `state` → callback creates the `users` row, links `agent_clients`, marks the token consumed, sets the cookie, redirects to `/owner`. After the first acceptance, owners can also sign in directly via `/login`.
+
+Next.js middleware verifies the JWT cookie on `/owner/*` and `/agent/*` and enforces role-based access.
 
 ## Two Roles
 
-- **Owner (Dana)** — manages their own properties, uses AI agents (Inbox + Tenant Eval)
-- **Agent (Priya)** — manages a portfolio of clients, sources tenants, responds to help requests
+- **Agent** — invites owners, creates tenant records for an owner's property, uploads docs, runs the AI evaluation, shares with the owner, replies in the per-tenant thread.
+- **Owner** — reviews shared tenants (docs + AI summary + scores), asks questions in the thread, approves or rejects (and can reopen).
 
 ## Design Docs
 
-- `docs/superpowers/specs/2026-04-19-ui-design.md` — UI design spec for all screens
-- `docs/superpowers/specs/2026-04-19-backend-auth-design.md` — Backend + auth architecture
-- `docs/superpowers/specs/2026-04-25-progress-and-next-steps.md` — Progress tracker
+- `docs/superpowers/specs/2026-05-03-tenant-review-design.md` — current design spec (the one to read).
+- `docs/superpowers/plans/2026-05-03-tenant-review-mvp.md` — implementation plan.
+- `docs/superpowers/archive/` — superseded PRD and design docs.
 
 ## Key Compliance Constraints
 
-- Fair Housing Act and FCRA compliance required for tenant screening — never reference protected class attributes
-- Human approval gates mandatory for payments above configurable thresholds
-- Row-level security for per-workspace data isolation
+- Fair Housing Act and FCRA compliance for tenant screening — never reference protected-class attributes; AI prompt has explicit guardrails.
+- Every AI evaluation claim must cite a source document.
+- AI output is advisory only; the human owner makes the final decision.

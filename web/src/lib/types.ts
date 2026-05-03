@@ -120,6 +120,7 @@ export interface ThreadEvent {
   type: ThreadEventType;
   author_user_id: string;
   author_name: string | null;
+  author_role: UserRole | null;
   body: string | null;
   created_at: string;
 }
