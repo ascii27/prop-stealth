@@ -16,14 +16,14 @@
 | C — Invite landing page (web) | ✅ done | C1 | 1 |
 | D — Properties refactor | ✅ done | D1, D2 | 2 |
 | E — Storage + tenant CRUD | ✅ done | E1, E2 | 2 |
-| F — Document upload | ⏳ next | F1 | — |
-| G — AI pipeline | pending | G1–G6 | — |
+| F — Document upload | ✅ done | F1 | 1 |
+| G — AI pipeline | ⏳ next | G1–G6 | — |
 | H — Threads + decisions | pending | H1 | — |
 | I — Email outbox + worker + templates | pending | I1–I4 | — |
 | J — Web dashboards/pages | pending | J1–J10 | — |
 | K — Polish + smoke test | pending | K1–K3 | — |
 
-31 commits on the branch since `main` diverged at `91eea58`. HEAD: `a30f363`.
+32 commits on the branch since `main` diverged at `91eea58`. HEAD: `8e3d17c`.
 
 ## What works right now
 
@@ -38,6 +38,7 @@
 - Agent clients management (ahead-of-schedule slice of J1+J5): `/agent/clients` list page (accepted + pending) with cancel-invite, `/agent/clients/[id]` detail page with read-only properties and Remove client. Sidebar Clients header is now a link. Backed by new `DELETE /api/clients/:id` and `DELETE /api/clients/invitations/:id`. URL rename to `/agent/owners/*` is still deferred to J1; agent property add/edit still in J5.
 - Local filesystem storage abstraction (`api/src/storage/local.ts`) with put/get/delete/resolveAbsolute, vetted by 3 vitest cases (round-trip, path-escape rejection, delete). Backs the F-phase upload pipeline.
 - Tenants CRUD route (`/api/tenants`): list (owner sees own shared/decided; agent sees across linked owners with filters), get-by-id, create-draft (agent only, must be linked to property's owner), patch (agent only). Owner JOIN exposes property_address/city/state on list rows.
+- Tenant documents route (`/api/tenant-documents`): upload (agent, multer memory storage, 25 MB cap, mime allowlist for pdf/jpeg/png/webp/heic), list, inline download, delete. Files land at `api/uploads/tenants/<tenantId>/<uuid><ext>`; `api/uploads/` is gitignored.
 
 ## What's stubbed or placeholder
 
@@ -50,7 +51,7 @@
 - URL: `https://wyvern-zebra.exe.xyz`
 - API: `:4000`, web: `:8000`, postgres local on the box, Mailpit NOT installed there yet (no email sending in any phase before I anyway).
 - The Google OAuth client (`771221835755-654rud12afgptef5s0rdd7gsk65knrnb`) has the sandbox callback `https://wyvern-zebra.exe.xyz/api/auth/google/callback` registered.
-- Sandbox redeployed after Phase E (HEAD = `a30f363`; PROGRESS update may bump it further).
+- Sandbox redeployed after Phase F (HEAD = `8e3d17c`; PROGRESS update may bump it further).
 
 ## Known gaps / follow-ups (not blocking)
 
@@ -80,9 +81,9 @@ Carry these forward as we move through later phases:
 
 1. Read this file and `docs/superpowers/plans/2026-05-03-tenant-review-mvp.md` (Phase E onwards).
 2. Confirm with `git branch --show-current` you're on `feat/tenant-review-mvp`. If not: `git checkout feat/tenant-review-mvp && git pull`.
-3. Verify state: `git log --oneline -3` should show `a30f363` (or the PROGRESS-update commit on top).
+3. Verify state: `git log --oneline -3` should show `8e3d17c` (or the PROGRESS-update commit on top).
 4. Verify infra: `docker compose up -d` (postgres + mailpit), `npm install`, `npm run dev`.
-5. Pick up Phase F — task F1 is `POST /api/tenants/:id/documents` with `multer`, `tenant_documents` insert, and storage write. Plan text starts at line 2658 of the plan file.
+5. Pick up Phase G — AI pipeline. Six tasks (G1–G6) covering Anthropic SDK calls for tenant extraction (basics from docs) and full evaluation (scores + citations). Plan starts at line 2935 of the plan file. Requires `ANTHROPIC_API_KEY` set in `api/.env`.
 6. Continue subagent-driven cadence: bundle small/coupled tasks, dispatch implementer + spec reviewer + code-quality reviewer per bundle, deploy to sandbox at the end of each phase.
 
 ## Memory hooks
