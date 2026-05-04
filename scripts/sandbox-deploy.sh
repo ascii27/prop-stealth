@@ -11,12 +11,18 @@ BRANCH="${1:-$(git branch --show-current)}"
 echo "==> Deploying branch '$BRANCH' to $SANDBOX"
 
 ssh "$SANDBOX" bash -s "$PROJECT_DIR" "$BRANCH" << 'REMOTE_SCRIPT'
+set -euo pipefail
 PROJECT_DIR="$1"
 BRANCH="$2"
 cd "$PROJECT_DIR"
 
 echo "==> Pulling latest..."
-git fetch origin
+# Discard any local writes to tracked files (npm install can dirty package-lock.json
+# and similar) so checkout never silently fails on a dirty tree.
+git checkout -- .
+# Prune deleted/renamed remote branches (e.g. when a feature branch is merged
+# and deleted, or main is renamed) so checkout sees the current set.
+git fetch origin --prune
 git checkout "$BRANCH"
 git pull origin "$BRANCH"
 
