@@ -5,12 +5,10 @@ import { usePathname } from "next/navigation";
 import { Logo } from "@/components/logo";
 import { useUser, logout } from "@/lib/user-context";
 
-const navItems = [
-  { label: "Activity Feed", href: "/owner", badge: "3", exact: true },
-  { label: "Inbox Agent", href: "/owner/inbox" },
-  { label: "Tenant Eval", href: "/owner/tenant-eval" },
+const navItems: { label: string; href: string; exact?: boolean }[] = [
+  { label: "Dashboard", href: "/owner", exact: true },
+  { label: "Tenants", href: "/owner/tenants" },
   { label: "Properties", href: "/owner/properties" },
-  { label: "Documents", href: "/owner/documents" },
 ];
 
 export function OwnerSidebar() {
@@ -42,11 +40,6 @@ export function OwnerSidebar() {
               }`}
             >
               <span>{item.label}</span>
-              {item.badge && (
-                <span className="bg-brand text-white text-[9px] px-1.5 py-0.5 rounded-full">
-                  {item.badge}
-                </span>
-              )}
             </Link>
           );
         })}

@@ -1,59 +1,98 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { attentionItems, timelineGroups } from "@/lib/mock-data";
-import { AttentionCard } from "@/components/attention-card";
-import { TimelineEntry } from "@/components/timeline-entry";
-import { useUser } from "@/lib/user-context";
 
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
+interface TenantRow {
+  id: string;
+  applicant_name: string | null;
+  status: string;
+  property_address: string;
+  property_city: string;
+  property_state: string;
 }
 
-export default function OwnerHome() {
-  const { user } = useUser();
-  const firstName = user?.name?.split(" ")[0] || "there";
+interface PropertyRow {
+  id: string;
+  address: string;
+  city: string;
+  state: string;
+}
+
+export default function OwnerDashboardPage() {
+  const [shared, setShared] = useState<TenantRow[] | null>(null);
+  const [properties, setProperties] = useState<PropertyRow[]>([]);
+
+  useEffect(() => {
+    fetch("/api/tenants?status=shared", { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => setShared(data.tenants || []));
+    fetch("/api/properties", { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => setProperties(data.properties || []));
+  }, []);
 
   return (
-    <div>
-      {/* Header */}
-      <div className="flex justify-between items-center mb-5">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900">
-            {getGreeting()}, {firstName}
-          </h1>
-          <p className="text-xs text-gray-500">3 items need your attention</p>
-        </div>
-        <Link
-          href="/owner/tenant-eval"
-          className="bg-white border border-gray-300 text-gray-700 px-3.5 py-1.5 rounded-md text-xs font-medium"
-        >
-          + Evaluate Tenant
-        </Link>
-      </div>
+    <div className="space-y-6">
+      <h1 className="text-lg font-semibold text-gray-900">Dashboard</h1>
 
-      {/* Needs Your Attention */}
-      <div className="mb-6">
-        <h2 className="text-[13px] font-semibold text-gray-900 mb-2.5">Needs Your Attention</h2>
-        {attentionItems.map((item) => (
-          <AttentionCard key={item.id} item={item} />
-        ))}
-      </div>
-
-      {/* Timeline */}
-      {timelineGroups.map((group) => (
-        <div key={group.label}>
-          <h2 className="text-[13px] font-semibold text-gray-900 mb-2.5">{group.label}</h2>
-          <div className="border-l-2 border-gray-200 pl-4 ml-1 mb-5">
-            {group.entries.map((entry) => (
-              <TimelineEntry key={entry.id} entry={entry} />
+      <section>
+        <h2 className="text-sm font-medium text-gray-900 mb-2">
+          Tenants to review
+        </h2>
+        {!shared && <p className="text-sm text-gray-500">Loading…</p>}
+        {shared && shared.length === 0 && (
+          <p className="text-sm text-gray-500">
+            Nothing shared with you right now.
+          </p>
+        )}
+        {shared && shared.length > 0 && (
+          <ul className="space-y-2">
+            {shared.map((t) => (
+              <li
+                key={t.id}
+                className="border border-gray-200 rounded p-3 hover:bg-gray-50"
+              >
+                <Link href={`/owner/tenants/${t.id}`} className="block">
+                  <p className="text-sm font-medium text-gray-900">
+                    {t.applicant_name || "(unnamed)"}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {t.property_address}, {t.property_city},{" "}
+                    {t.property_state}
+                  </p>
+                </Link>
+              </li>
             ))}
-          </div>
-        </div>
-      ))}
+          </ul>
+        )}
+      </section>
+
+      <section>
+        <h2 className="text-sm font-medium text-gray-900 mb-2">
+          Your properties
+        </h2>
+        {properties.length === 0 ? (
+          <p className="text-sm text-gray-500">
+            Your agent will add properties for you.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {properties.map((p) => (
+              <li key={p.id} className="border border-gray-200 rounded p-3">
+                <Link href={`/owner/properties/${p.id}`} className="block">
+                  <p className="text-sm font-medium text-gray-900">
+                    {p.address}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {p.city}, {p.state}
+                  </p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

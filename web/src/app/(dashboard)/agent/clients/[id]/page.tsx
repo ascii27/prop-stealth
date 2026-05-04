@@ -2,95 +2,106 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { StatusBadge } from "@/components/status-badge";
+import { useParams, useRouter } from "next/navigation";
+import type { Property, Tenant } from "@/lib/types";
 
-interface Property {
-  id: string;
-  address: string;
-  city: string;
-  state: string;
-  beds: number;
-  baths: number;
-  unit: string | null;
-  occupied: boolean;
-  tenant_name: string | null;
-}
-
-interface Evaluation {
-  id: string;
-  applicant_name: string;
-  property_address: string;
-  overall_score: number | null;
-  status: string;
-}
-
-interface ClientData {
+interface ClientDetail {
   id: string;
   email: string;
-  name: string;
+  name: string | null;
   avatar_url: string | null;
   properties: Property[];
-  evaluations: Evaluation[];
-  vacancyCount: number;
 }
 
-export default function ClientDetailPage() {
-  const params = useParams();
-  const id = params.id as string;
+type TenantRow = Tenant & {
+  property_address?: string;
+  property_city?: string;
+  property_state?: string;
+};
 
-  const [client, setClient] = useState<ClientData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+export default function AgentClientDetailPage() {
+  const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const [client, setClient] = useState<ClientDetail | null>(null);
+  const [tenants, setTenants] = useState<TenantRow[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/clients/${id}`, { credentials: "include" })
-      .then((res) => {
-        if (res.status === 404 || res.status === 403) {
-          setNotFound(true);
-          return null;
-        }
-        if (!res.ok) throw new Error("Failed to load");
-        return res.json();
+    Promise.all([
+      fetch(`/api/clients/${params.id}`, { credentials: "include" }).then(
+        async (r) => {
+          if (r.status === 404) throw new Error("Client not found");
+          if (!r.ok) throw new Error("Failed to load client");
+          return r.json();
+        },
+      ),
+      fetch(`/api/tenants?owner_id=${params.id}`, {
+        credentials: "include",
       })
-      .then((data) => {
-        if (data) setClient(data.client);
+        .then((r) => (r.ok ? r.json() : { tenants: [] }))
+        .catch(() => ({ tenants: [] })),
+    ])
+      .then(([clientRes, tenantsRes]) => {
+        setClient(clientRes.client);
+        setTenants(tenantsRes.tenants || []);
       })
-      .catch((err) => console.error(err))
-      .finally(() => setLoading(false));
-  }, [id]);
+      .catch((e) => setError((e as Error).message));
+  }, [params.id]);
 
-  if (loading) {
-    return <p className="text-xs text-gray-400 p-5">Loading...</p>;
+  async function onRemove() {
+    if (!client) return;
+    const label = client.name || client.email;
+    if (
+      !confirm(
+        `Remove ${label} as a client? Their account and properties stay; you'll lose access until they're re-invited.`,
+      )
+    ) {
+      return;
+    }
+    setRemoving(true);
+    setError(null);
+    try {
+      const r = await fetch(`/api/clients/${client.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!r.ok) throw new Error("Failed to remove client");
+      router.push("/agent/clients");
+      router.refresh();
+    } catch (e) {
+      setError((e as Error).message);
+      setRemoving(false);
+    }
   }
 
-  if (notFound || !client) {
+  if (error && !client) {
     return (
       <div>
-        <Link href="/agent" className="text-xs text-brand block mb-4">
-          &larr; Back to dashboard
+        <Link
+          href="/agent/clients"
+          className="text-xs text-brand inline-block mb-4"
+        >
+          ← Back to clients
         </Link>
-        <p className="text-sm text-gray-500">Client not found.</p>
+        <p className="text-sm text-red-600">{error}</p>
       </div>
     );
   }
-
-  const initials = client.name
-    ?.split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2) || "?";
+  if (!client) return <p className="text-sm text-gray-500">Loading…</p>;
 
   return (
     <div>
-      {/* Back link */}
-      <Link href="/agent" className="text-xs text-brand block mb-4">
-        &larr; Back to dashboard
+      <Link
+        href="/agent/clients"
+        className="text-xs text-brand inline-block mb-4"
+      >
+        ← Back to clients
       </Link>
 
-      {/* Client header */}
       <div className="flex items-center gap-3 mb-6">
         {client.avatar_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={client.avatar_url}
             alt=""
@@ -98,79 +109,107 @@ export default function ClientDetailPage() {
             referrerPolicy="no-referrer"
           />
         ) : (
-          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-            <span className="text-sm font-semibold text-blue-700">{initials}</span>
+          <div className="w-10 h-10 rounded-full bg-brand text-white text-sm flex items-center justify-center font-medium">
+            {(client.name || client.email).charAt(0).toUpperCase()}
           </div>
         )}
         <div>
-          <h1 className="text-lg font-semibold text-gray-900">{client.name}</h1>
-          <p className="text-xs text-gray-500">
-            {client.properties.length} propert
-            {client.properties.length === 1 ? "y" : "ies"}
-            {client.vacancyCount > 0
-              ? ` · ${client.vacancyCount} vacant`
-              : " · all occupied"}
-          </p>
+          <h1 className="text-lg font-semibold text-gray-900">
+            {client.name || client.email}
+          </h1>
+          <p className="text-xs text-gray-500">{client.email}</p>
         </div>
       </div>
 
-      {/* Properties section */}
-      <h2 className="text-[13px] font-semibold text-gray-900 mb-3">Properties</h2>
-      {client.properties.length === 0 ? (
-        <p className="text-xs text-gray-400 mb-6">No properties added yet.</p>
-      ) : (
-        <div className="space-y-2 mb-6">
-          {client.properties.map((property) => (
-            <div
-              key={property.id}
-              className="border border-gray-200 rounded-lg p-3 flex justify-between items-start"
-            >
-              <div>
-                <p className="text-xs font-medium text-gray-900">
-                  {property.address}
-                  {property.unit ? `, ${property.unit}` : ""}
-                </p>
-                <p className="text-[10px] text-gray-500">
-                  {property.beds}bd · {property.baths}ba · {property.city}, {property.state}
-                </p>
-              </div>
-              <StatusBadge variant={property.occupied ? "occupied" : "vacant"}>
-                {property.occupied ? "Occupied" : "Vacant"}
-              </StatusBadge>
-            </div>
-          ))}
+      <section className="mb-8">
+        <div className="flex justify-between items-baseline mb-3">
+          <h2 className="text-sm font-semibold text-gray-900">Properties</h2>
+          <Link
+            href={`/agent/clients/${client.id}/properties/new`}
+            className="text-xs text-brand"
+          >
+            + Add property
+          </Link>
         </div>
-      )}
-
-      {/* Evaluations section */}
-      {client.evaluations.length > 0 && (
-        <>
-          <h2 className="text-[13px] font-semibold text-gray-900 mb-3">
-            Tenant Evaluations
-          </h2>
-          <div className="space-y-2">
-            {client.evaluations.map((evaluation) => (
-              <div
-                key={evaluation.id}
-                className="border border-gray-200 rounded-lg p-3 flex justify-between items-start"
-              >
-                <div>
-                  <p className="text-xs font-medium text-gray-900">
-                    {evaluation.applicant_name}
+        {client.properties.length === 0 ? (
+          <p className="text-xs text-gray-400 border border-dashed border-gray-200 rounded-lg p-4">
+            No properties yet.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {client.properties.map((p) => (
+              <li key={p.id} className="border border-gray-200 rounded-lg">
+                <Link
+                  href={`/agent/clients/${client.id}/properties/${p.id}`}
+                  className="block p-3 hover:bg-gray-50"
+                >
+                  <p className="text-sm font-medium text-gray-900">
+                    {p.address}
                   </p>
-                  <p className="text-[10px] text-gray-500">
-                    {evaluation.property_address}
-                    {evaluation.overall_score != null && ` · ${evaluation.overall_score}/100`}
+                  <p className="text-[11px] text-gray-500">
+                    {p.city}, {p.state} {p.zip || ""} · {p.beds} bd /{" "}
+                    {p.baths} ba
+                    {p.property_type ? ` · ${p.property_type}` : ""}
                   </p>
-                </div>
-                <StatusBadge variant={evaluation.status as "approved" | "evaluating"}>
-                  {evaluation.status.charAt(0).toUpperCase() + evaluation.status.slice(1)}
-                </StatusBadge>
-              </div>
+                </Link>
+              </li>
             ))}
-          </div>
-        </>
-      )}
+          </ul>
+        )}
+      </section>
+
+      <section className="mb-8">
+        <div className="flex justify-between items-baseline mb-3">
+          <h2 className="text-sm font-semibold text-gray-900">Tenants</h2>
+          <Link href="/agent/tenants/new" className="text-xs text-brand">
+            + New tenant
+          </Link>
+        </div>
+        {tenants.length === 0 ? (
+          <p className="text-xs text-gray-400 border border-dashed border-gray-200 rounded-lg p-4">
+            No tenants yet.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {tenants.map((t) => (
+              <li key={t.id} className="border border-gray-200 rounded-lg">
+                <Link
+                  href={`/agent/tenants/${t.id}`}
+                  className="block p-3 hover:bg-gray-50"
+                >
+                  <div className="flex justify-between items-baseline">
+                    <p className="text-sm font-medium text-gray-900">
+                      {t.applicant_name || "(unnamed)"}
+                    </p>
+                    <span className="text-[10px] uppercase text-gray-500">
+                      {t.status}
+                    </span>
+                  </div>
+                  {t.property_address && (
+                    <p className="text-[11px] text-gray-500">
+                      {t.property_address}
+                      {t.property_city ? `, ${t.property_city}` : ""}
+                      {t.property_state ? `, ${t.property_state}` : ""}
+                    </p>
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
+
+      <div className="border-t border-gray-200 pt-4 flex justify-end">
+        <button
+          onClick={onRemove}
+          disabled={removing}
+          className="text-xs text-red-600 hover:text-red-700 disabled:opacity-50"
+        >
+          {removing ? "Removing…" : "Remove client"}
+        </button>
+      </div>
     </div>
   );
 }

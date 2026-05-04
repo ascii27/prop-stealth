@@ -6,12 +6,12 @@ type Role = "owner" | "agent";
 
 const messaging: Record<Role, { headline: string; sub: string }> = {
   owner: {
-    headline: "Manage your rental properties with AI",
-    sub: "Automate inbox triage, screen tenants, and stay on top of your portfolio.",
+    headline: "Review tenant candidates from your agent",
+    sub: "AI-summarized applications, your decision.",
   },
   agent: {
-    headline: "Grow your clients' wealth with AI",
-    sub: "Source tenants, manage client portfolios, and offer ongoing property services.",
+    headline: "Screen tenants for your clients",
+    sub: "Upload docs, share AI evaluations, manage decisions in one place.",
   },
 };
 
@@ -128,6 +128,10 @@ function ErrorMessage() {
     auth_failed: "Google sign-in failed. Please try again.",
     invalid_state: "Something went wrong. Please try again.",
     server_error: "Server error. Please try again later.",
+    invite_invalid: "That invite link is not valid. Ask your agent to resend.",
+    invite_expired: "That invite link has expired. Ask your agent to resend.",
+    invite_email_mismatch:
+      "That invite was for a different Google account. Sign in with the email your agent invited.",
   };
 
   return (

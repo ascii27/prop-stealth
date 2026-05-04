@@ -18,5 +18,18 @@ export const config = {
       "http://localhost:3000/api/auth/google/callback",
   },
   cookieName: "propstealth_session",
-  sessionMaxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
+  sessionMaxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY || "",
+  smtp: {
+    host: process.env.SMTP_HOST || "localhost",
+    port: parseInt(process.env.SMTP_PORT || "1025", 10),
+    user: process.env.SMTP_USER || "",
+    pass: process.env.SMTP_PASS || "",
+    from: process.env.SMTP_FROM || "PropStealth <noreply@propstealth.local>",
+  },
+  appBaseUrl: process.env.APP_BASE_URL || "http://localhost:3000",
+  uploadDir: path.resolve(
+    path.join(__dirname, ".."),
+    process.env.UPLOAD_DIR || "uploads",
+  ),
 } as const;

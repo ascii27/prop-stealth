@@ -2,6 +2,9 @@ import { Router, Request, Response } from "express";
 import { requireAuth } from "../middleware/auth.js";
 import { JwtPayload } from "../types.js";
 import { db } from "../db/client.js";
+import { generateInviteToken, inviteExpiry } from "../invites/tokens.js";
+import { enqueueEmail } from "../email/outbox.js";
+import { renderInvite } from "../email/templates/invite.js";
 
 const router = Router();
 
@@ -27,13 +30,12 @@ router.get("/", requireAuth, async (req: Request, res: Response) => {
     const clients = await Promise.all(
       result.rows.map(async (client) => {
         const propsResult = await db.query(
-          "SELECT * FROM properties WHERE user_id = $1 ORDER BY created_at DESC",
+          "SELECT * FROM properties WHERE owner_id = $1 ORDER BY created_at DESC",
           [client.id],
         );
         return {
           ...client,
           properties: propsResult.rows,
-          vacancyCount: propsResult.rows.filter((p: { occupied: boolean }) => !p.occupied).length,
         };
       }),
     );
@@ -80,20 +82,13 @@ router.get("/:id", requireAuth, async (req: Request, res: Response) => {
     }
 
     const propsResult = await db.query(
-      "SELECT * FROM properties WHERE user_id = $1 ORDER BY created_at DESC",
-      [req.params.id],
-    );
-
-    const evalsResult = await db.query(
-      "SELECT * FROM evaluations WHERE user_id = $1 ORDER BY created_at DESC",
+      "SELECT * FROM properties WHERE owner_id = $1 ORDER BY created_at DESC",
       [req.params.id],
     );
 
     const client = {
       ...userResult.rows[0],
       properties: propsResult.rows,
-      evaluations: evalsResult.rows,
-      vacancyCount: propsResult.rows.filter((p: { occupied: boolean }) => !p.occupied).length,
     };
 
     res.json({ client });
@@ -103,7 +98,7 @@ router.get("/:id", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-// POST /invitations — create a client invitation
+// POST /invitations — create a client invitation with magic-link token
 router.post("/invitations", requireAuth, async (req: Request, res: Response) => {
   try {
     const { userId, role } = req.user as JwtPayload;
@@ -112,15 +107,18 @@ router.post("/invitations", requireAuth, async (req: Request, res: Response) => 
       return;
     }
 
-    const { name, email, message } = req.body;
-    if (!name || !email) {
+    const { name, email: rawEmail, message } = req.body;
+    if (!name || !rawEmail) {
       res.status(400).json({ error: "name and email are required" });
       return;
     }
+    // Normalize email to avoid case-mismatch duplicates and to make later
+    // comparisons (Google profile email vs invitation email) consistent.
+    const email = String(rawEmail).trim().toLowerCase();
 
-    // Check if already invited
+    // Check for an existing pending invite from THIS agent for THIS email
     const existing = await db.query(
-      "SELECT * FROM invitations WHERE agent_id = $1 AND email = $2 AND status = 'pending'",
+      "SELECT * FROM invitations WHERE agent_id = $1 AND LOWER(email) = $2 AND status = 'pending'",
       [userId, email],
     );
     if (existing.rows.length > 0) {
@@ -128,11 +126,11 @@ router.post("/invitations", requireAuth, async (req: Request, res: Response) => 
       return;
     }
 
-    // Check if already a client (user exists with this email and is linked)
+    // Already a linked client?
     const existingUser = await db.query(
       `SELECT u.id FROM users u
        JOIN agent_clients ac ON ac.owner_id = u.id AND ac.agent_id = $1
-       WHERE u.email = $2`,
+       WHERE LOWER(u.email) = $2`,
       [userId, email],
     );
     if (existingUser.rows.length > 0) {
@@ -140,16 +138,20 @@ router.post("/invitations", requireAuth, async (req: Request, res: Response) => 
       return;
     }
 
+    const token = generateInviteToken();
+    const expiresAt = inviteExpiry();
+
     const result = await db.query(
-      `INSERT INTO invitations (agent_id, email, name, message)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO invitations
+         (agent_id, email, name, message, invite_token, invite_token_expires_at)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [userId, email, name, message || null],
+      [userId, email, name, message || null, token, expiresAt],
     );
 
-    // Auto-link if the user already exists as an owner
+    // Auto-link if the user already exists as an owner — skip token, mark accepted
     const ownerResult = await db.query(
-      "SELECT id FROM users WHERE email = $1 AND role = 'owner'",
+      "SELECT id FROM users WHERE LOWER(email) = $1 AND role = 'owner'",
       [email],
     );
     if (ownerResult.rows.length > 0) {
@@ -160,10 +162,37 @@ router.post("/invitations", requireAuth, async (req: Request, res: Response) => 
         [userId, ownerResult.rows[0].id],
       );
       await db.query(
-        "UPDATE invitations SET status = 'accepted' WHERE id = $1",
+        `UPDATE invitations
+            SET status = 'accepted',
+                invite_consumed_at = NOW()
+          WHERE id = $1`,
         [result.rows[0].id],
       );
       result.rows[0].status = "accepted";
+      result.rows[0].invite_consumed_at = new Date();
+    }
+
+    // Send the invite email only when the owner did NOT auto-link.
+    // Auto-link means they already had an account; the invite email's only
+    // purpose is to deliver the magic-link token, which we just consumed.
+    if (result.rows[0].status !== "accepted") {
+      const agentResult = await db.query(
+        "SELECT name FROM users WHERE id = $1",
+        [userId],
+      );
+      const tpl = renderInvite({
+        ownerName: name,
+        agentName: agentResult.rows[0]?.name || null,
+        message: message || null,
+        token,
+      });
+      await enqueueEmail({
+        toEmail: email,
+        subject: tpl.subject,
+        bodyHtml: tpl.html,
+        bodyText: tpl.text,
+        templateKey: "invite",
+      });
     }
 
     res.status(201).json({ invitation: result.rows[0] });
@@ -192,5 +221,59 @@ router.get("/invitations/list", requireAuth, async (req: Request, res: Response)
     res.status(500).json({ error: "Failed to list invitations" });
   }
 });
+
+// DELETE /invitations/:id — agent cancels a pending invitation
+router.delete(
+  "/invitations/:id",
+  requireAuth,
+  async (req: Request<{ id: string }>, res: Response) => {
+    try {
+      const { userId, role } = req.user as JwtPayload;
+      if (role !== "agent") {
+        res.status(403).json({ error: "Only agents can cancel invitations" });
+        return;
+      }
+      const result = await db.query(
+        "DELETE FROM invitations WHERE id = $1 AND agent_id = $2 AND status = 'pending' RETURNING id",
+        [req.params.id, userId],
+      );
+      if (result.rows.length === 0) {
+        res.status(404).json({ error: "Invitation not found" });
+        return;
+      }
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Cancel invitation error:", err);
+      res.status(500).json({ error: "Failed to cancel invitation" });
+    }
+  },
+);
+
+// DELETE /:id — agent removes the agent_clients link with this owner
+router.delete(
+  "/:id",
+  requireAuth,
+  async (req: Request<{ id: string }>, res: Response) => {
+    try {
+      const { userId, role } = req.user as JwtPayload;
+      if (role !== "agent") {
+        res.status(403).json({ error: "Only agents can remove clients" });
+        return;
+      }
+      const result = await db.query(
+        "DELETE FROM agent_clients WHERE agent_id = $1 AND owner_id = $2 RETURNING owner_id",
+        [userId, req.params.id],
+      );
+      if (result.rows.length === 0) {
+        res.status(404).json({ error: "Client not found" });
+        return;
+      }
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Remove client error:", err);
+      res.status(500).json({ error: "Failed to remove client" });
+    }
+  },
+);
 
 export default router;

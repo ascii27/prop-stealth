@@ -62,9 +62,18 @@ export function AgentSidebar() {
           Dashboard
         </Link>
 
-        {/* Clients — label only, not a link */}
+        {/* Clients */}
         <div className="mt-2">
-          <span className="px-2 text-sm text-gray-500">Clients</span>
+          <Link
+            href="/agent/clients"
+            className={`block px-2 py-1.5 rounded-md text-sm ${
+              isActive("/agent/clients")
+                ? "bg-brand-light text-brand font-medium"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Clients
+          </Link>
           <div className="mt-1 flex flex-col gap-0.5 pl-2">
             {clients.length === 0 && pending.length === 0 && (
               <span className="px-2 py-1 text-[11px] text-gray-300">None yet</span>
@@ -95,32 +104,6 @@ export function AgentSidebar() {
           </div>
         </div>
 
-        {/* Tenant Pipeline */}
-        <Link
-          href="/agent/pipeline"
-          className={`mt-2 flex items-center justify-between px-2 py-1.5 rounded-md text-sm ${
-            isActive("/agent/pipeline")
-              ? "bg-brand-light text-brand font-medium"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          <span>Tenant Pipeline</span>
-          <span className="bg-brand text-white text-[9px] px-1.5 py-0.5 rounded-full">
-            4
-          </span>
-        </Link>
-
-        {/* Help Requests */}
-        <Link
-          href="/agent/help-requests"
-          className={`px-2 py-1.5 rounded-md text-sm ${
-            isActive("/agent/help-requests")
-              ? "bg-brand-light text-brand font-medium"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          Help Requests
-        </Link>
       </nav>
 
       <div className="border-t border-gray-200 pt-3 flex flex-col gap-1">

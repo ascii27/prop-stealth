@@ -1,132 +1,145 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { StatusBadge } from "@/components/status-badge";
+import type { Property } from "@/lib/types";
 
-interface Property {
-  id: string;
-  address: string;
-  city: string;
-  state: string;
-  beds: number;
-  baths: number;
-  unit: string | null;
-  occupied: boolean;
-  tenant_name: string | null;
-}
-
-export default function PropertyDetail() {
-  const params = useParams();
+export default function OwnerPropertyDetailPage() {
+  const params = useParams<{ id: string }>();
   const router = useRouter();
-  const id = params.id as string;
-
   const [property, setProperty] = useState<Property | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`/api/properties/${id}`, { credentials: "include" })
-      .then((res) => {
-        if (res.status === 404) {
-          setNotFound(true);
-          return null;
-        }
-        if (!res.ok) throw new Error("Failed to load");
-        return res.json();
+    fetch(`/api/properties/${params.id}`, { credentials: "include" })
+      .then(async (r) => {
+        if (!r.ok) throw new Error("Property not found");
+        const data = await r.json();
+        setProperty(data.property);
       })
-      .then((data) => {
-        if (data) setProperty(data.property);
-      })
-      .catch((err) => console.error(err))
-      .finally(() => setLoading(false));
-  }, [id]);
+      .catch((e) => setError(e.message));
+  }, [params.id]);
 
-  async function handleDelete() {
-    if (!confirm("Delete this property? This cannot be undone.")) return;
-    setDeleting(true);
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!property) return;
+    setSaving(true);
+    setError(null);
+    const form = new FormData(e.currentTarget);
+    const body = {
+      address: form.get("address"),
+      city: form.get("city"),
+      state: form.get("state"),
+      zip: form.get("zip") || null,
+      beds: Number(form.get("beds")) || 0,
+      baths: Number(form.get("baths")) || 0,
+      property_type: form.get("property_type") || null,
+      monthly_rent_target: form.get("monthly_rent_target")
+        ? Number(form.get("monthly_rent_target"))
+        : null,
+      notes: form.get("notes") || null,
+    };
     try {
-      const res = await fetch(`/api/properties/${id}`, {
-        method: "DELETE",
+      const r = await fetch(`/api/properties/${params.id}`, {
+        method: "PUT",
         credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       });
-      if (res.ok) {
-        router.push("/owner/properties");
-      }
-    } catch (err) {
-      console.error("Delete failed:", err);
+      if (!r.ok) throw new Error("Failed to save");
+      router.push("/owner/properties");
+    } catch (e) {
+      setError((e as Error).message);
     } finally {
-      setDeleting(false);
+      setSaving(false);
     }
   }
 
-  if (loading) {
-    return <p className="text-xs text-gray-400 p-5">Loading...</p>;
-  }
-
-  if (notFound || !property) {
-    return (
-      <div>
-        <Link href="/owner/properties" className="text-xs text-brand inline-block mb-4">
-          &larr; Back to properties
-        </Link>
-        <p className="text-sm text-gray-500">Property not found.</p>
-      </div>
-    );
-  }
+  if (error && !property) return <p className="text-sm text-red-600">{error}</p>;
+  if (!property) return <p className="text-sm text-gray-500">Loading…</p>;
 
   return (
-    <div>
-      {/* Back link */}
-      <Link
-        href="/owner/properties"
-        className="text-xs text-brand inline-block mb-4"
-      >
-        &larr; Back to properties
-      </Link>
+    <div className="max-w-[560px]">
+      <h1 className="text-lg font-semibold text-gray-900 mb-1">Edit property</h1>
+      <p className="text-xs text-gray-500 mb-5">
+        Update the basic details for this property.
+      </p>
 
-      {/* Header */}
-      <div className="flex items-start justify-between mb-6">
+      <form onSubmit={onSubmit} className="space-y-3">
+        <Field label="Address" name="address" defaultValue={property.address} required />
+        <div className="grid grid-cols-3 gap-3">
+          <Field label="City" name="city" defaultValue={property.city} required />
+          <Field label="State" name="state" defaultValue={property.state} required maxLength={2} />
+          <Field label="Zip" name="zip" defaultValue={property.zip || ""} />
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <Field label="Beds" name="beds" type="number" defaultValue={String(property.beds)} />
+          <Field label="Baths" name="baths" type="number" defaultValue={String(property.baths)} />
+          <Field
+            label="Type"
+            name="property_type"
+            defaultValue={property.property_type || ""}
+            placeholder="single-family, condo…"
+          />
+        </div>
+        <Field
+          label="Monthly rent target"
+          name="monthly_rent_target"
+          type="number"
+          defaultValue={property.monthly_rent_target ? String(property.monthly_rent_target) : ""}
+        />
         <div>
-          <h1 className="text-lg font-semibold text-gray-900">
-            {property.address}
-            {property.unit ? `, ${property.unit}` : ""}
-          </h1>
-          <p className="text-[11px] text-gray-500">
-            {property.beds}bd / {property.baths}ba &middot; {property.city}, {property.state}
-          </p>
+          <label className="block text-xs font-medium text-gray-700 mb-1.5">Notes</label>
+          <textarea
+            name="notes"
+            rows={3}
+            defaultValue={property.notes || ""}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-xs"
+          />
         </div>
-        <div className="flex items-center gap-2">
-          <StatusBadge variant={property.occupied ? "occupied" : "vacant"}>
-            {property.occupied ? "Occupied" : "Vacant"}
-          </StatusBadge>
-          <button
-            onClick={handleDelete}
-            disabled={deleting}
-            className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50"
-          >
-            {deleting ? "Deleting..." : "Delete"}
-          </button>
-        </div>
-      </div>
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        <button
+          type="submit"
+          disabled={saving}
+          className="bg-brand text-white px-4 py-2 rounded-md text-xs font-medium disabled:opacity-50"
+        >
+          {saving ? "Saving…" : "Save"}
+        </button>
+      </form>
+    </div>
+  );
+}
 
-      {/* Tenant card */}
-      {property.occupied && property.tenant_name && (
-        <div className="border rounded-lg p-4 mb-6">
-          <p className="text-sm font-medium text-gray-900">
-            {property.tenant_name}
-          </p>
-          <p className="text-[11px] text-gray-500 mt-0.5">Current tenant</p>
-        </div>
-      )}
-
-      {/* Documents section — placeholder until documents API is built */}
-      <div>
-        <h2 className="text-sm font-semibold text-gray-900 mb-3">Documents</h2>
-        <p className="text-xs text-gray-400">No documents uploaded yet.</p>
-      </div>
+function Field({
+  label,
+  name,
+  type = "text",
+  defaultValue,
+  required,
+  maxLength,
+  placeholder,
+}: {
+  label: string;
+  name: string;
+  type?: string;
+  defaultValue?: string;
+  required?: boolean;
+  maxLength?: number;
+  placeholder?: string;
+}) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-gray-700 mb-1.5">{label}</label>
+      <input
+        name={name}
+        type={type}
+        defaultValue={defaultValue}
+        required={required}
+        maxLength={maxLength}
+        placeholder={placeholder}
+        className="w-full border border-gray-300 rounded-md px-3 py-2 text-xs"
+      />
     </div>
   );
 }
