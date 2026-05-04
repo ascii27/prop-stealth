@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import type { Property } from "@/lib/types";
+import type { Property, Tenant } from "@/lib/types";
 
 interface ClientDetail {
   id: string;
@@ -13,20 +13,38 @@ interface ClientDetail {
   properties: Property[];
 }
 
+type TenantRow = Tenant & {
+  property_address?: string;
+  property_city?: string;
+  property_state?: string;
+};
+
 export default function AgentClientDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [client, setClient] = useState<ClientDetail | null>(null);
+  const [tenants, setTenants] = useState<TenantRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/clients/${params.id}`, { credentials: "include" })
-      .then(async (r) => {
-        if (r.status === 404) throw new Error("Client not found");
-        if (!r.ok) throw new Error("Failed to load client");
-        const data = await r.json();
-        setClient(data.client);
+    Promise.all([
+      fetch(`/api/clients/${params.id}`, { credentials: "include" }).then(
+        async (r) => {
+          if (r.status === 404) throw new Error("Client not found");
+          if (!r.ok) throw new Error("Failed to load client");
+          return r.json();
+        },
+      ),
+      fetch(`/api/tenants?owner_id=${params.id}`, {
+        credentials: "include",
+      })
+        .then((r) => (r.ok ? r.json() : { tenants: [] }))
+        .catch(() => ({ tenants: [] })),
+    ])
+      .then(([clientRes, tenantsRes]) => {
+        setClient(clientRes.client);
+        setTenants(tenantsRes.tenants || []);
       })
       .catch((e) => setError((e as Error).message));
   }, [params.id]);
@@ -104,7 +122,15 @@ export default function AgentClientDetailPage() {
       </div>
 
       <section className="mb-8">
-        <h2 className="text-sm font-semibold text-gray-900 mb-3">Properties</h2>
+        <div className="flex justify-between items-baseline mb-3">
+          <h2 className="text-sm font-semibold text-gray-900">Properties</h2>
+          <Link
+            href={`/agent/clients/${client.id}/properties/new`}
+            className="text-xs text-brand"
+          >
+            + Add property
+          </Link>
+        </div>
         {client.properties.length === 0 ? (
           <p className="text-xs text-gray-400 border border-dashed border-gray-200 rounded-lg p-4">
             No properties yet.
@@ -112,12 +138,61 @@ export default function AgentClientDetailPage() {
         ) : (
           <ul className="space-y-2">
             {client.properties.map((p) => (
-              <li key={p.id} className="border border-gray-200 rounded-lg p-3">
-                <p className="text-sm font-medium text-gray-900">{p.address}</p>
-                <p className="text-[11px] text-gray-500">
-                  {p.city}, {p.state} {p.zip || ""} · {p.beds} bd / {p.baths} ba
-                  {p.property_type ? ` · ${p.property_type}` : ""}
-                </p>
+              <li key={p.id} className="border border-gray-200 rounded-lg">
+                <Link
+                  href={`/agent/clients/${client.id}/properties/${p.id}`}
+                  className="block p-3 hover:bg-gray-50"
+                >
+                  <p className="text-sm font-medium text-gray-900">
+                    {p.address}
+                  </p>
+                  <p className="text-[11px] text-gray-500">
+                    {p.city}, {p.state} {p.zip || ""} · {p.beds} bd /{" "}
+                    {p.baths} ba
+                    {p.property_type ? ` · ${p.property_type}` : ""}
+                  </p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mb-8">
+        <div className="flex justify-between items-baseline mb-3">
+          <h2 className="text-sm font-semibold text-gray-900">Tenants</h2>
+          <Link href="/agent/tenants/new" className="text-xs text-brand">
+            + New tenant
+          </Link>
+        </div>
+        {tenants.length === 0 ? (
+          <p className="text-xs text-gray-400 border border-dashed border-gray-200 rounded-lg p-4">
+            No tenants yet.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {tenants.map((t) => (
+              <li key={t.id} className="border border-gray-200 rounded-lg">
+                <Link
+                  href={`/agent/tenants/${t.id}`}
+                  className="block p-3 hover:bg-gray-50"
+                >
+                  <div className="flex justify-between items-baseline">
+                    <p className="text-sm font-medium text-gray-900">
+                      {t.applicant_name || "(unnamed)"}
+                    </p>
+                    <span className="text-[10px] uppercase text-gray-500">
+                      {t.status}
+                    </span>
+                  </div>
+                  {t.property_address && (
+                    <p className="text-[11px] text-gray-500">
+                      {t.property_address}
+                      {t.property_city ? `, ${t.property_city}` : ""}
+                      {t.property_state ? `, ${t.property_state}` : ""}
+                    </p>
+                  )}
+                </Link>
               </li>
             ))}
           </ul>
