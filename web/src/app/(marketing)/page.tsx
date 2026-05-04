@@ -19,9 +19,6 @@ function Nav() {
         <a href="#for-agents" className="text-[13px] text-gray-500 hover:text-gray-700">
           For Agents
         </a>
-        <a href="#pricing" className="text-[13px] text-gray-500 hover:text-gray-700">
-          Pricing
-        </a>
         <Link
           href="/login"
           className="bg-brand text-white px-4.5 py-2 rounded-[7px] text-[13px] font-medium hover:opacity-90"
@@ -45,14 +42,15 @@ function Hero() {
 
       {/* H1 */}
       <h1 className="text-[44px] font-extrabold leading-[1.15] tracking-tight text-gray-900 mb-5">
-        Your rental properties, managed by{" "}
-        <span className="text-brand">AI agents</span>
+        Tenant evaluation,{" "}
+        <span className="text-brand">shared with your client</span>
       </h1>
 
       {/* Subtitle */}
-      <p className="text-[17px] text-gray-500 max-w-[580px] mx-auto mb-8">
-        PropStealth reads your email, screens tenants, and keeps you on top of
-        every property — so you can stop managing and start growing.
+      <p className="text-[17px] text-gray-500 max-w-[620px] mx-auto mb-8">
+        Your real estate agent runs the docs through AI, then shares the
+        result with you in a single click. You ask questions, approve, or
+        reject — all in one place.
       </p>
 
       {/* CTAs */}
@@ -79,118 +77,20 @@ function Hero() {
   );
 }
 
-// ─── App Preview ─────────────────────────────────────────────────────────────
-
-function AppPreview() {
-  return (
-    <section className="max-w-[900px] mx-auto mt-12 px-6">
-      <div className="rounded-t-xl shadow-xl border border-gray-200 overflow-hidden">
-        {/* Browser chrome bar */}
-        <div className="bg-gray-100 border-b border-gray-200 px-4 py-2 flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-red-400" />
-          <div className="w-3 h-3 rounded-full bg-yellow-400" />
-          <div className="w-3 h-3 rounded-full bg-green-400" />
-          <div className="ml-4 flex-1 bg-white rounded px-3 py-0.5 text-[11px] text-gray-400 border border-gray-200">
-            app.propstealth.com
-          </div>
-        </div>
-
-        {/* Dashboard preview */}
-        <div className="flex h-[340px]">
-          {/* Mini sidebar */}
-          <div className="w-[180px] bg-sidebar border-r border-gray-100 flex flex-col p-3 gap-1 shrink-0">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-5 h-5 bg-brand rounded-md" />
-              <span className="text-xs font-semibold text-gray-800">PropStealth</span>
-            </div>
-            {["Dashboard", "Inbox", "Tenants", "Properties", "Documents"].map(
-              (item, i) => (
-                <div
-                  key={item}
-                  className={`text-[11px] px-2 py-1.5 rounded-md ${
-                    i === 0
-                      ? "bg-brand text-white font-medium"
-                      : "text-gray-500 hover:bg-gray-100"
-                  }`}
-                >
-                  {item}
-                </div>
-              )
-            )}
-          </div>
-
-          {/* Main content */}
-          <div className="flex-1 bg-white p-6 overflow-hidden">
-            <p className="text-[11px] text-gray-400 mb-0.5">Sunday, April 19</p>
-            <h2 className="text-lg font-bold text-gray-900 mb-0.5">
-              Good morning, Dana
-            </h2>
-            <p className="text-[13px] text-gray-500 mb-4">
-              3 items need your attention
-            </p>
-
-            {/* Attention cards */}
-            <div className="flex flex-col gap-2">
-              {/* Blue card */}
-              <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-100 rounded-lg">
-                <div className="w-2 h-2 mt-1 rounded-full bg-blue-400 shrink-0" />
-                <div>
-                  <p className="text-[12px] font-semibold text-blue-900">
-                    New rental application received
-                  </p>
-                  <p className="text-[11px] text-blue-600">
-                    James T. applied for 412 Oak Ave — review tenant eval
-                  </p>
-                </div>
-              </div>
-
-              {/* Amber card 1 */}
-              <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-100 rounded-lg">
-                <div className="w-2 h-2 mt-1 rounded-full bg-amber-400 shrink-0" />
-                <div>
-                  <p className="text-[12px] font-semibold text-amber-900">
-                    Lease renewal due in 14 days
-                  </p>
-                  <p className="text-[11px] text-amber-600">
-                    Unit 3B at Sunset Ridge — draft renewal or notify tenant
-                  </p>
-                </div>
-              </div>
-
-              {/* Amber card 2 */}
-              <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-100 rounded-lg">
-                <div className="w-2 h-2 mt-1 rounded-full bg-amber-400 shrink-0" />
-                <div>
-                  <p className="text-[12px] font-semibold text-amber-900">
-                    HOA invoice needs approval
-                  </p>
-                  <p className="text-[11px] text-amber-600">
-                    $245 quarterly fee — tap to approve payment
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 // ─── Social Proof ─────────────────────────────────────────────────────────────
 
 function SocialProof() {
   const stats = [
-    { value: "6hrs", label: "saved per week" },
-    { value: "142", label: "emails auto-classified" },
     { value: "<10min", label: "tenant screening" },
+    { value: "4", label: "scored categories per candidate" },
+    { value: "100%", label: "every AI claim cites a document" },
   ];
 
   return (
     <section className="bg-gray-50 py-12 mt-12">
       <div className="max-w-[900px] mx-auto text-center px-6">
         <p className="text-xs text-gray-400 uppercase tracking-widest mb-8">
-          Early results from alpha users
+          What you get
         </p>
         <div className="flex justify-center gap-16">
           {stats.map(({ value, label }) => (
@@ -211,18 +111,18 @@ function HowItWorks() {
   const steps = [
     {
       n: 1,
-      title: "Connect your Gmail",
-      desc: "Link your Google account in one click. PropStealth starts reading and classifying your property-related emails immediately — no setup required.",
+      title: "Your agent uploads the candidate's docs",
+      desc: "Application, ID, income, credit, references — whatever you have. PDFs and photos both work.",
     },
     {
       n: 2,
-      title: "Add your properties",
-      desc: "Enter your properties in minutes. Agents automatically associate incoming emails, documents, and actions with the right address.",
+      title: "AI generates a score and summary",
+      desc: "A 0–100 risk score, 4-category breakdown, and plain-English summary — every claim cited back to a specific document.",
     },
     {
       n: 3,
-      title: "Let agents work for you",
-      desc: "AI agents triage your inbox, screen applicants, and flag decisions. You review and approve — spending minutes, not hours, each week.",
+      title: "You review and decide together",
+      desc: "Owner reads the evaluation, asks questions in a per-tenant thread, and approves or rejects. The decision is always the human's.",
     },
   ];
 
@@ -232,7 +132,7 @@ function HowItWorks() {
         <div className="text-center mb-10">
           <h2 className="text-[28px] font-bold text-gray-900 mb-3">How it works</h2>
           <p className="text-[15px] text-gray-500">
-            Set up in 5 minutes. AI agents start working immediately.
+            From application to decision in under an hour.
           </p>
         </div>
         <div className="grid grid-cols-3 gap-6">
@@ -250,113 +150,6 @@ function HowItWorks() {
               <p className="text-[13px] text-gray-500 leading-relaxed">{desc}</p>
             </div>
           ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Inbox Agent Showcase ─────────────────────────────────────────────────────
-
-function InboxAgentShowcase() {
-  const bullets = [
-    "Auto-classifies every email by property, urgency, and action type",
-    "Drafts replies for your review — send with one click",
-    "Surfaces only the emails that need a human decision",
-    "Learns your preferences over time to get smarter",
-  ];
-
-  return (
-    <section className="bg-gray-50 py-[72px]">
-      <div className="max-w-[900px] mx-auto px-6">
-        <div className="flex items-center gap-12">
-          {/* Text */}
-          <div className="flex-1">
-            <p className="text-[11px] text-brand uppercase tracking-widest font-semibold mb-2">
-              Inbox Agent
-            </p>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Your email, sorted and summarized
-            </h2>
-            <p className="text-[14px] text-gray-500 mb-5 leading-relaxed">
-              Stop drowning in tenant emails. The Inbox Agent reads your
-              connected Gmail, classifies every message, and prepares concise
-              summaries — so you always know what&apos;s happening across all your
-              properties.
-            </p>
-            <ul className="flex flex-col gap-2">
-              {bullets.map((b) => (
-                <li
-                  key={b}
-                  className="text-[13px] text-gray-700 pl-5 relative before:content-['✓'] before:absolute before:left-0 before:text-brand before:font-semibold"
-                >
-                  {b}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Visual: Mini inbox mockup */}
-          <div className="w-[320px] shrink-0 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-            {/* Header */}
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <span className="text-[12px] font-semibold text-gray-800">Inbox</span>
-              <span className="text-[10px] text-gray-400">3 unread</span>
-            </div>
-
-            {/* Email rows */}
-            {[
-              {
-                dot: "bg-blue-400",
-                sender: "James T.",
-                subject: "Rental application — 412 Oak Ave",
-                time: "9:14 AM",
-                tag: "Tenant",
-              },
-              {
-                dot: "bg-purple-400",
-                sender: "Sunset Ridge HOA",
-                subject: "Q2 dues invoice attached",
-                time: "Yesterday",
-                tag: "HOA",
-              },
-              {
-                dot: "bg-gray-300",
-                sender: "City Water Dept.",
-                subject: "Monthly statement ready",
-                time: "Mon",
-                tag: "Utility",
-              },
-            ].map(({ dot, sender, subject, time, tag }) => (
-              <div
-                key={subject}
-                className="px-4 py-3 border-b border-gray-50 flex items-start gap-3 hover:bg-gray-50"
-              >
-                <div className={`w-2 h-2 mt-1.5 rounded-full ${dot} shrink-0`} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-0.5">
-                    <span className="text-[11px] font-semibold text-gray-800 truncate">
-                      {sender}
-                    </span>
-                    <span className="text-[10px] text-gray-400 ml-2 shrink-0">
-                      {time}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-gray-500 truncate">{subject}</p>
-                  <span className="inline-block mt-1 text-[9px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
-                    {tag}
-                  </span>
-                </div>
-              </div>
-            ))}
-
-            {/* Auto-respond button */}
-            <div className="px-4 py-3">
-              <button className="w-full bg-brand text-white text-[11px] font-medium py-2 rounded-lg hover:opacity-90">
-                Auto-respond to 2 emails →
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </section>
@@ -584,29 +377,6 @@ function Personas() {
   );
 }
 
-// ─── Testimonial ──────────────────────────────────────────────────────────────
-
-function Testimonial() {
-  return (
-    <section className="py-[72px] text-center">
-      <div className="max-w-[640px] mx-auto px-6">
-        {/* Avatar */}
-        <div className="w-14 h-14 rounded-full bg-gray-200 mx-auto mb-5" />
-        {/* Quote */}
-        <blockquote className="italic text-lg text-gray-700 mb-5 leading-relaxed">
-          &ldquo;I used to spend Sunday nights going through 30+ emails about my
-          three properties. Now I open PropStealth and everything&apos;s already
-          sorted — I just review and approve.&rdquo;
-        </blockquote>
-        {/* Attribution */}
-        <p className="text-[13px] text-gray-400">
-          Michael R. · 3 properties in Tampa · Alpha user
-        </p>
-      </div>
-    </section>
-  );
-}
-
 // ─── CTA ──────────────────────────────────────────────────────────────────────
 
 function CTA() {
@@ -663,14 +433,11 @@ export default function MarketingPage() {
     <div className="min-h-screen bg-white font-sans">
       <Nav />
       <Hero />
-      <AppPreview />
       <SocialProof />
       <HowItWorks />
-      <InboxAgentShowcase />
       <TenantEvalShowcase />
       <ForAgentsShowcase />
       <Personas />
-      <Testimonial />
       <CTA />
       <Footer />
     </div>
