@@ -6,12 +6,12 @@ type Role = "owner" | "agent";
 
 const messaging: Record<Role, { headline: string; sub: string }> = {
   owner: {
-    headline: "Manage your rental properties with AI",
-    sub: "Automate inbox triage, screen tenants, and stay on top of your portfolio.",
+    headline: "Review tenant candidates from your agent",
+    sub: "AI-summarized applications, your decision.",
   },
   agent: {
-    headline: "Grow your clients' wealth with AI",
-    sub: "Source tenants, manage client portfolios, and offer ongoing property services.",
+    headline: "Screen tenants for your clients",
+    sub: "Upload docs, share AI evaluations, manage decisions in one place.",
   },
 };
 
