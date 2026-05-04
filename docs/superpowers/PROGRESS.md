@@ -20,10 +20,10 @@
 | G — AI pipeline | ✅ done | G1–G6 | 6 |
 | H — Threads + decisions | ✅ done | H1 | 1 |
 | I — Email outbox + worker + templates | ✅ done | I1–I4 | 4 |
-| J — Web dashboards/pages | ⏳ next | J1–J10 | — |
-| K — Polish + smoke test | pending | K1–K3 | — |
+| J — Web dashboards/pages | ✅ done | J1–J10 | 6 |
+| K — Polish + smoke test | ⏳ next | K1–K3 | — |
 
-44 commits on the branch since `main` diverged at `91eea58`. HEAD: `0c80730`.
+50 commits on the branch since `main` diverged at `91eea58`. HEAD: `765cf7d`.
 
 ## What works right now
 
@@ -42,11 +42,10 @@
 - AI pipeline (`api/src/agents/tenant-eval/`): `prompts.ts` (compliance guardrails + extract/evaluate system prompts, model `claude-opus-4-7`), `parse.ts` (with vitest), `build-content.ts` (text + raw PDF + images, pdf-parse v2), `extract.ts` and `evaluate.ts` (Anthropic SDK calls). Wired into the tenants route as `POST /api/tenants/:id/extract`, `POST /api/tenants/:id/evaluate` (background, 202), `GET /api/tenants/:id/evaluation`. Status transitions: draft → evaluating → ready (or → draft on failure).
 - Tenant thread + sharing endpoints (`/api/tenants/...`): GET/POST `/:id/thread`, POST `/share` (batch, agent), POST `/:id/unshare` (agent), POST `/:id/decision` (owner approve/reject with optional note), POST `/:id/reopen` (owner revert). Each transition writes a typed `tenant_thread_events` row.
 - Email outbox + worker + 4 templates + triggers. `email_outbox` rows are claimed via `UPDATE...RETURNING` with `FOR UPDATE SKIP LOCKED` (concurrency-safe). Worker polls every 10s, batch 10, single-flight, 5 attempts then `failed`. Triggers: invite (only when invitation didn't auto-link), tenants_shared (one batched email per recipient owner), thread_message (notifies the other party with a 240-char excerpt), decision (notifies listing agent). Local: `SMTP_HOST=localhost:1025` Mailpit. Sandbox: `SMTP_HOST=disabled` so the worker short-circuits and pending rows accumulate harmlessly until Mailpit is installed there.
+- Web UI build-out (Phase J): three reusable components (`doc-upload`, `eval-summary`, `tenant-thread`); trimmed sidebars (drop dead Pipeline/Help-Requests, owner gets Dashboard/Tenants/Properties); `/agent/clients/[id]` enhanced with Tenants list + "+ Add property" link; `/agent/clients/[id]/properties/new` and `/[propId]` (create/edit); `/agent` dashboard listing clients with property + "awaiting review" counts; `/agent/tenants/new` wizard; `/agent/tenants/[id]` detail with status pill, action bar, basics edit, three tabs (Documents/Evaluation/Thread), polls every 2s while evaluating; `/owner/tenants` list; `/owner/tenants/[id]` detail with Approve/Reject/Reopen; `/owner` dashboard; `/owner/settings` trimmed of Gmail block. URLs stayed `/agent/clients/...` (not `/agent/owners/...`) per prior choice.
 
 ## What's stubbed or placeholder
 
-- `/owner` and `/agent` dashboards — minimal "Coming soon" stubs (Phase J6/J9).
-- Owner settings still has only the user info card (Gmail block was removed in A6).
 - Marketing homepage copy still describes the old product (Phase K1).
 
 ## Sandbox
@@ -54,7 +53,7 @@
 - URL: `https://wyvern-zebra.exe.xyz`
 - API: `:4000`, web: `:8000`, postgres local on the box, Mailpit NOT installed there yet (no email sending in any phase before I anyway).
 - The Google OAuth client (`771221835755-654rud12afgptef5s0rdd7gsk65knrnb`) has the sandbox callback `https://wyvern-zebra.exe.xyz/api/auth/google/callback` registered.
-- Sandbox redeployed after Phase I (HEAD = `0c80730`; PROGRESS update may bump it further). `ANTHROPIC_API_KEY` is set in both `.env`s. Sandbox `.env` also has `SMTP_HOST=disabled` (per-user direction: don't install Mailpit on the box).
+- Sandbox redeployed after Phase J (HEAD = `765cf7d`; PROGRESS update may bump it further). `ANTHROPIC_API_KEY` is set in both `.env`s. Sandbox `.env` also has `SMTP_HOST=disabled` (per-user direction: don't install Mailpit on the box).
 
 ## Known gaps / follow-ups (not blocking)
 
@@ -86,9 +85,9 @@ Carry these forward as we move through later phases:
 
 1. Read this file and `docs/superpowers/plans/2026-05-03-tenant-review-mvp.md` (Phase E onwards).
 2. Confirm with `git branch --show-current` you're on `feat/tenant-review-mvp`. If not: `git checkout feat/tenant-review-mvp && git pull`.
-3. Verify state: `git log --oneline -3` should show `0c80730` (or the PROGRESS-update commit on top).
+3. Verify state: `git log --oneline -3` should show `765cf7d` (or the PROGRESS-update commit on top).
 4. Verify infra: `docker compose up -d` (postgres + mailpit), `npm install`, `npm run dev`.
-5. Pick up Phase J — web UI build-out. Ten tasks (J1–J10) covering sidebar updates, doc upload component, eval summary, tenant thread, agent owner-detail/properties pages, agent dashboard, new-tenant wizard + tenant detail, owner tenant pages, owner dashboard, and trim owner settings. Plan starts at line 4559.
+5. Pick up Phase K — polish + copy + end-to-end smoke test. K1 is marketing-page copy refresh, K2 is end-to-end smoke walk through agent → owner round-trip on the sandbox, K3 is final cleanup. Plan starts at line 6218.
 6. Continue subagent-driven cadence: bundle small/coupled tasks, dispatch implementer + spec reviewer + code-quality reviewer per bundle, deploy to sandbox at the end of each phase.
 
 ## Memory hooks
