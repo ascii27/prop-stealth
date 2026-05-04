@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "835d35915359",
+  "strategy": "manual-commit",
+  "branch": "feat/tenant-review-mvp",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "web/src/app/(dashboard)/agent/clients/[id]/page.tsx",
+    "web/src/app/(dashboard)/agent/clients/[id]/properties/[propId]/page.tsx",
+    "web/src/app/(dashboard)/agent/clients/[id]/properties/new/page.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/83/5d35915359/0/metadata.json",
+      "transcript": "/83/5d35915359/0/full.jsonl",
+      "content_hash": "/83/5d35915359/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 3,
+    "cache_creation_tokens": 9687,
+    "cache_read_tokens": 1389084,
+    "output_tokens": 7080,
+    "api_call_count": 3
+  }
+}

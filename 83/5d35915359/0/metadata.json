@@ -1,0 +1,41 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "835d35915359",
+  "session_id": "37c0afd9-1a2c-4a5e-8a94-b6563a8ac051",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-04T00:24:32.159707Z",
+  "branch": "feat/tenant-review-mvp",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "web/src/app/(dashboard)/agent/clients/[id]/page.tsx",
+    "web/src/app/(dashboard)/agent/clients/[id]/properties/new/page.tsx",
+    "web/src/app/(dashboard)/agent/clients/[id]/properties/[propId]/page.tsx"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-4-7[1m]",
+  "turn_id": "f4850d4e7a6a",
+  "checkpoint_transcript_start": 1265,
+  "transcript_lines_at_start": 1265,
+  "token_usage": {
+    "input_tokens": 3,
+    "cache_creation_tokens": 9687,
+    "cache_read_tokens": 1389084,
+    "output_tokens": 7080,
+    "api_call_count": 3
+  },
+  "session_metrics": {
+    "turn_count": 13
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-04T00:24:32.107438Z",
+    "agent_lines": 396,
+    "agent_removed": 14,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 396,
+    "total_lines_changed": 410,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}
