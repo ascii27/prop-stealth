@@ -1,0 +1,25 @@
+I want to merge everything to main.
+
+---
+
+What I want to do is bring main up to date with the "create-prd-real-estate-5ANdd", and then switch to "main" as the default branch.
+
+---
+
+Ah... ok, so actually we want to make the main branch the old full version, and rename the new one claude/.... into "main"
+
+---
+
+Yes, run all 4 steps
+
+---
+
+1. Push the fixtures separately. 2. switch to main
+
+---
+
+yes delete it after merged
+
+---
+
+Fix the marketing home page. It should reflect that it is only focused on tenant evaluation. Remove the other property management components. Also provide some screenshots.
